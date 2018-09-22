@@ -17,23 +17,22 @@
 #include "wfcopy.h"
 
 
-BITMAPS         BITMAP PRELOAD wbbitmap.bmp
+BITMAPS         BITMAP "res/bmp/wbbitmap.bmp"
+IDB_TOOLBAR     BITMAP "res/bmp/toolbar.bmp"
+IDB_EXTRATOOLS  BITMAP "res/bmp/xtratool.bmp"
 
-IDB_TOOLBAR     BITMAP PRELOAD toolbar.bmp
-IDB_EXTRATOOLS  BITMAP PRELOAD xtratool.bmp
+APPICON     ICON   "res/ico/winfile.ico"
+TREEICON    ICON   "res/ico/wftree.ico"
+DIRICON     ICON   "res/ico/wfdir.ico"
+TREEDIRICON ICON   "res/ico/wftrdir.ico"
 
-APPICON     ICON   PRELOAD winfile.ico
-TREEICON    ICON   PRELOAD wftree.ico
-DIRICON     ICON   PRELOAD wfdir.ico
-TREEDIRICON ICON   PRELOAD wftrdir.ico
+SPLITCURSOR     CURSOR "res/cur/split.cur"
+SINGLEMOVECURSOR    CURSOR "res/cur/smove.cur"
+MULTMOVECURSOR      CURSOR "res/cur/mmove.cur"
+SINGLECOPYCURSOR    CURSOR "res/cur/scopy.cur"
+MULTCOPYCURSOR      CURSOR "res/cur/mcopy.cur"
 
-SPLITCURSOR     CURSOR PRELOAD split.cur
-SINGLEMOVECURSOR    CURSOR smove.cur
-MULTMOVECURSOR      CURSOR mmove.cur
-SINGLECOPYCURSOR    CURSOR scopy.cur
-MULTCOPYCURSOR      CURSOR mcopy.cur
-
-WFACCELTABLE ACCELERATORS PRELOAD
+WFACCELTABLE ACCELERATORS
 BEGIN
     VK_ESCAPE,  IDM_ESCAPE,     NOINVERT, VIRTKEY
     VK_RETURN,  IDM_OPEN,       NOINVERT, VIRTKEY
@@ -130,8 +129,11 @@ END
 #define CREATEPROCESS_MANIFEST_RESOURCE_ID 1
 #endif
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) && !defined(__REACTOS__)
+//The built-in manifest is designed for Windows Vista or later
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "winfile.exe.manifest"
+#else
+#include <reactos/manifest_exe.rc>
 #endif
 
 //Language includes
