@@ -455,7 +455,7 @@ vector<PDNODE> GetDirectoryOptionsFromText(LPCTSTR szText, BOOL *pbLimited)
 VOID UpdateGotoList(HWND hDlg)
 {
 	BOOL bLimited = FALSE;
-	TCHAR szText[MAXPATHLEN];
+	WCHAR szText[MAXPATHLEN];
 
 	DWORD dw = GetDlgItemText(hDlg, IDD_GOTODIR, szText, COUNTOF(szText));
 
@@ -591,7 +591,7 @@ GotoDirDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
 		case IDOK:
 		{
-			TCHAR szPath[MAXPATHLEN];
+			WCHAR szPath[MAXPATHLEN];
 
 			EndDialog(hDlg, TRUE);
 

@@ -26,7 +26,7 @@
 
 
 #if 0
-#define odf(x,y) {TCHAR szT[100]; wsprintf(szT,x,y); OutputDebugString(szT);}
+#define odf(x,y) {WCHAR szT[100]; wsprintf(szT,x,y); OutputDebugString(szT);}
 #else
 #undef OutputDebugString
 #define OutputDebugString(x)
@@ -37,11 +37,11 @@
 
 typedef struct _DDE_INFO {
    BOOL  bUsesDDE;
-   TCHAR  szCommand[COMMANDSIZ];   // doesn't really belong here..
-   TCHAR  szDDEMesg[DDESIZ];
-   TCHAR  szDDEApp[DDESIZ];
-   TCHAR  szDDENotRun[DDESIZ];
-   TCHAR  szDDETopic[DDESIZ];
+   WCHAR  szCommand[COMMANDSIZ];   // doesn't really belong here..
+   WCHAR  szDDEMesg[DDESIZ];
+   WCHAR  szDDEApp[DDESIZ];
+   WCHAR  szDDENotRun[DDESIZ];
+   WCHAR  szDDETopic[DDESIZ];
 } DDEINFO, *PDDEINFO;
 
 typedef struct _DDE_TYPE {
@@ -85,8 +85,8 @@ typedef struct _EXT {
    BOOL bDelete : 1;
    PFILETYPE pFileType;
    PFILETYPE pftOrig;
-   TCHAR szExt[EXTSIZ+1];   // +1 for dot
-   TCHAR szIdent[1];        // Variable length; must be last
+   WCHAR szExt[EXTSIZ+1];   // +1 for dot
+   WCHAR szIdent[1];        // Variable length; must be last
                             // This is ONLY USED BY ClassesRead
                             // Do NOT rely on this being stable;
 } EXT;
@@ -106,7 +106,7 @@ typedef struct _ASSOCIATE_FILE_DLG_INFO {
    HWND       hDlg;
    INT        iClassList;                // HACK: == LB_ERR for winini editing
    DDEINFO    DDEInfo[DDETYPEMAX];
-   TCHAR      szExt[EXTSIZ+2];           // for dots (ALWAYS has prefix dot)
+   WCHAR      szExt[EXTSIZ+2];           // for dots (ALWAYS has prefix dot)
 } ASSOCIATEFILEDLGINFO, *PASSOCIATEFILEDLGINFO;
 
 typedef union _VFILETYPEEXT {
@@ -117,25 +117,25 @@ typedef union _VFILETYPEEXT {
 
 // globals
 
-TCHAR szShellOpenCommand[] = TEXT("\\shell\\open\\command");
+WCHAR szShellOpenCommand[] = TEXT("\\shell\\open\\command");
 
-TCHAR szShell[]   = TEXT("\\shell\\");
-TCHAR szCommand[] = TEXT("\\command");
-TCHAR szDDEExec[] = TEXT("\\ddeexec");
-TCHAR szApp[]     = TEXT("\\application");
-TCHAR szTopic[]   = TEXT("\\topic");
-TCHAR szIFExec[]  = TEXT("\\ifexec");
+WCHAR szShell[]   = TEXT("\\shell\\");
+WCHAR szCommand[] = TEXT("\\command");
+WCHAR szDDEExec[] = TEXT("\\ddeexec");
+WCHAR szApp[]     = TEXT("\\application");
+WCHAR szTopic[]   = TEXT("\\topic");
+WCHAR szIFExec[]  = TEXT("\\ifexec");
 
-TCHAR szDDEDefaultTopic[] = TEXT("System");
+WCHAR szDDEDefaultTopic[] = TEXT("System");
 
 // These two strings must match exactly in length
-TCHAR szFileManPrefix[] = TEXT("FMA000_");
-TCHAR szFileManPrefixGen[] = TEXT("FMA%03x_");
+WCHAR szFileManPrefix[] = TEXT("FMA000_");
+WCHAR szFileManPrefixGen[] = TEXT("FMA%03x_");
 #define MAX_PREFIX 0xfff
 
-TCHAR szDotEXE[] = TEXT(".exe");
-TCHAR szSpacePercentOne[] = TEXT(" %1");
-TCHAR szNone[32];
+WCHAR szDotEXE[] = TEXT(".exe");
+WCHAR szSpacePercentOne[] = TEXT(" %1");
+WCHAR szNone[32];
 
 PFILETYPE pFileTypeBase = NULL;
 PEXT pExtBase = NULL;
@@ -187,7 +187,7 @@ VOID ExtLink(PEXT pExt, PFILETYPE pFileType);
 VOID ExtDelink(PEXT pExt);
 VOID ExtFree(PEXT pExt);
 
-LPTSTR StrChrQuote(LPTSTR lpszString, TCHAR c);
+LPTSTR StrChrQuote(LPTSTR lpszString, WCHAR c);
 LPTSTR GenerateFriendlyName(LPTSTR lpszCommand);
 
 // endproto
@@ -299,14 +299,14 @@ ValidateClass(HWND hDlg)
 VOID
 UpdateSelectionExt(HWND hDlg, BOOL bForce)
 {
-   TCHAR szExt[EXTSIZ+1];
+   WCHAR szExt[EXTSIZ+1];
    PEXT pExt;
    INT i;
-   TCHAR c, c2;
-   PTCHAR p;
+   WCHAR c, c2;
+   PWCHAR p;
    PFILETYPE pFileType;
 
-   TCHAR szTemp[MAX_PATH];
+   WCHAR szTemp[MAX_PATH];
 
    //
    // bForce is used when we base the ext on GETCURSEL rather than
@@ -414,7 +414,7 @@ INT_PTR
 CALLBACK
 AssociateDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-   TCHAR szTemp[STRINGSIZ];
+   WCHAR szTemp[STRINGSIZ];
    PFILETYPE pFileType, pft2;
    INT i;
    DWORD dwError;
@@ -647,9 +647,9 @@ DoConfigWinIni:
          // Verify with dialog
          //
          {
-            TCHAR szText[MAXERRORLEN];
-            TCHAR szTitle[MAXTITLELEN];
-            TCHAR szTemp[MAXERRORLEN];
+            WCHAR szText[MAXERRORLEN];
+            WCHAR szTitle[MAXTITLELEN];
+            WCHAR szTemp[MAXERRORLEN];
 
             LoadString(hAppInstance, IDS_FILETYPEDELCONFIRMTITLE, szTitle,
                COUNTOF(szTitle));
@@ -926,7 +926,7 @@ Cancel:
             OPENFILENAME ofn;
             DWORD dwSave = dwContext;
 
-            TCHAR szFile[MAX_PATH + 2];
+            WCHAR szFile[MAX_PATH + 2];
 
             LPTSTR p;
 
@@ -1021,14 +1021,14 @@ AssociateFileDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam
    DWORD dwError;
 
    PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo;
-   PTCHAR p;
+   PWCHAR p;
 
    pAssociateFileDlgInfo = (PASSOCIATEFILEDLGINFO)GetWindowLongPtr(hDlg, GWLP_USERDATA);
 
    switch (wMsg) {
    case WM_INITDIALOG:
       {
-         TCHAR szComboBoxString[DDETYPECOMBOBOXSIZ];
+         WCHAR szComboBoxString[DDETYPECOMBOBOXSIZ];
 
          // Set limit on # TCHARs on everything
 
@@ -1187,7 +1187,7 @@ AssociateFileDlgCommand(HWND hDlg,
    PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo)
 {
    INT i;
-   TCHAR szExt[EXTSIZ];
+   WCHAR szExt[EXTSIZ];
    BOOL bChange;
 
    switch (GET_WM_COMMAND_ID(wParam, lParam)) {
@@ -1509,8 +1509,8 @@ Reload:
          DWORD dwSave = dwContext;
          LPTSTR p;
 
-         TCHAR szFile[MAX_PATH + 2];
-         TCHAR szTemp2[MAX_PATH];
+         WCHAR szFile[MAX_PATH + 2];
+         WCHAR szTemp2[MAX_PATH];
 
          dwContext = IDH_ASSOC_BROWSE;
 
@@ -1762,8 +1762,8 @@ ClassesRead(HKEY hKey,
    PEXT pExtPrev, pExt;
    BOOL retval;
    INT iKey;
-   TCHAR szIdent[DESCSIZ+COUNTOF(szFileManPrefix)];
-   TCHAR szExt[EXTSIZ+1];
+   WCHAR szIdent[DESCSIZ+COUNTOF(szFileManPrefix)];
+   WCHAR szExt[EXTSIZ+1];
    BOOL bFileType;
 
    // Open the requested location
@@ -1942,8 +1942,8 @@ ClassesRead(HKEY hKey,
 
       if (bFileType) {
 
-         TCHAR szTemp[DESCSIZ+COUNTOF(szShellOpenCommand)];
-         TCHAR szCommand[COMMANDSIZ];
+         WCHAR szTemp[DESCSIZ+COUNTOF(szShellOpenCommand)];
+         WCHAR szCommand[COMMANDSIZ];
 
          //
          // Copy in nice name
@@ -2232,7 +2232,7 @@ FileTypeRead(HWND hDlg,
    DWORD dwError;
    HKEY hk;
 
-   TCHAR szTemp[STRINGSIZ];
+   WCHAR szTemp[STRINGSIZ];
 
    // If we are in IDD_NEW mode, just return success
    // since we don't read anything for new ones.
@@ -2395,7 +2395,7 @@ FileTypeWrite(HWND hDlg,
    DWORD dwError;
    LPTSTR p, p2;
    UINT uOffset;
-   TCHAR szDesc[DESCSIZ];
+   WCHAR szDesc[DESCSIZ];
    BOOL bSpace;
    BOOL bNotSpace;
 
@@ -2623,7 +2623,7 @@ Error:
 DWORD
 DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 {
-   TCHAR szKey[MAX_PATH];
+   WCHAR szKey[MAX_PATH];
    INT iPoint;
    LONG lSize;
    DWORD dwError;
@@ -2683,7 +2683,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
       StripPath(p2);
 
       if (*p2)
-         *p2=(TCHAR)CharUpper((LPTSTR)*p2);
+         *p2=(WCHAR)CharUpper((LPTSTR)*p2);
    }
 
    lstrcpy(&szKey[iPoint],szTopic);
@@ -2756,7 +2756,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 DWORD
 DDEWrite(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 {
-   TCHAR szKey[MAX_PATH];
+   WCHAR szKey[MAX_PATH];
    INT iPoint;
    DWORD dwSize;
    DWORD dwError;
@@ -3233,9 +3233,9 @@ AssociateFileDlgExtAdd(HWND hDlg,
          // That it belongs to some other pFileType, we must ask
          // the user if we really can do this.
 
-         TCHAR szText[MAX_PATH];
-         TCHAR szTitle[MAX_PATH];
-         TCHAR szTemp[MAX_PATH];
+         WCHAR szText[MAX_PATH];
+         WCHAR szTitle[MAX_PATH];
+         WCHAR szTemp[MAX_PATH];
 
          //
          // If it's already associated to something that's
@@ -3535,7 +3535,7 @@ RegNodeDelete(HKEY hk, LPTSTR lpszKey)
 {
     HKEY hkNode;
     DWORD dwError;
-    TCHAR szKey[MAX_PATH];
+    WCHAR szKey[MAX_PATH];
    
    
     dwError = RegOpenKey(hk, lpszKey, &hkNode);
@@ -3813,7 +3813,7 @@ VOID
 ExtClean(LPTSTR lpszExt)
 {
     LPTSTR p;
-    TCHAR szExt[EXTSIZ + 1];
+    WCHAR szExt[EXTSIZ + 1];
 
 
     // Kill off trailing spaces
@@ -3979,9 +3979,9 @@ AssociateFileWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo)
 INT
 ClassListFileTypeAdd(HWND hDlg, PFILETYPE pFileType)
 {
-    PTCHAR p;
+    PWCHAR p;
     INT iItem;
-    TCHAR c, c2;
+    WCHAR c, c2;
     BOOL bInQuotes;
 
 
@@ -4182,7 +4182,7 @@ FileTypeDupIdentCheck(HWND hDlg, UINT uIDD_FOCUS, LPTSTR lpszIdent)
    BOOL bDup;
 
    INT iCount = 1;
-   PTCHAR p;
+   PWCHAR p;
 
    //
    // First remove all illegal backslashes
@@ -4271,13 +4271,13 @@ FileTypeDupIdentCheck(HWND hDlg, UINT uIDD_FOCUS, LPTSTR lpszIdent)
 DWORD
 CommandWrite(HWND hDlg, LPTSTR lpszExt, LPTSTR lpszCommand)
 {
-   TCHAR szIdentBuf[DESCSIZ+COUNTOF(szFileManPrefix)+COUNTOF(szShellOpenCommand)];
+   WCHAR szIdentBuf[DESCSIZ+COUNTOF(szFileManPrefix)+COUNTOF(szShellOpenCommand)];
    DWORD dwError;
    UINT i;
    DWORD cbData;
    LPTSTR p, lpszIdent;
 
-   TCHAR szCommand[COMMANDSIZ];
+   WCHAR szCommand[COMMANDSIZ];
 
    lstrcpy(szIdentBuf, szFileManPrefix);
 
@@ -4496,7 +4496,7 @@ ExtLink(PEXT pExt, PFILETYPE pFileType)
 /////////////////////////////////////////////////////////////////////
 
 LPTSTR
-StrChrQuote(LPTSTR lpszString, TCHAR c)
+StrChrQuote(LPTSTR lpszString, WCHAR c)
 {
     BOOL bInQuotes = FALSE;
 

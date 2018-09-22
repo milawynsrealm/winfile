@@ -160,7 +160,7 @@ VOID AddExtensionToolbarButtons(BOOL bAll);
 Static VOID
 ExtensionName(int i, LPTSTR szName)
 {
-  TCHAR szFullName[256];
+  WCHAR szFullName[256];
   LPTSTR lpName;
 
   *szName = TEXT('\0');
@@ -316,7 +316,7 @@ VOID
 BuildDriveLine(LPTSTR* ppszTemp, DRIVEIND driveInd,
    BOOL fGetFloppyLabel, DWORD dwType)
 {
-   static TCHAR szDrive[64];
+   static WCHAR szDrive[64];
    DRIVE drive;
    LPTSTR p;
    DWORD dwError;
@@ -476,7 +476,7 @@ PaintDriveLine(DRAWITEMSTRUCT FAR *lpdis)
 {
    HDC hdc = lpdis->hDC;
    LPTSTR lpszText;
-   TCHAR* pchTab;
+   WCHAR* pchTab;
    RECT rc = lpdis->rcItem;
    DRIVE drive;
    INT dxTabstop=MINIDRIVE_WIDTH;
@@ -516,7 +516,7 @@ PaintDriveLine(DRAWITEMSTRUCT FAR *lpdis)
          ;
 
       if (*pchTab)
-         *(pchTab++) = (TCHAR) 0;
+         *(pchTab++) = (WCHAR) 0;
    }
 
    if (lpdis->itemAction != ODA_FOCUS) {
@@ -635,9 +635,9 @@ LoadDesc(UINT uID, LPTSTR lpDesc)
 {
    HMENU hMenu;
    UINT uMenu;
-   TCHAR szFormat[20];
-   TCHAR szMenu[20];
-   TCHAR szItem[MAXDESCLEN-COUNTOF(szMenu)];
+   WCHAR szFormat[20];
+   WCHAR szMenu[20];
+   WCHAR szItem[MAXDESCLEN-COUNTOF(szMenu)];
    LPTSTR lpIn;
 
    hMenu = GetMenu(hwndFrame);
@@ -665,7 +665,7 @@ LoadDesc(UINT uID, LPTSTR lpDesc)
    // Remove the ampersands
 
    for (lpIn=lpDesc; ; ++lpIn, ++lpDesc) {
-      TCHAR cTemp;
+      WCHAR cTemp;
 
       cTemp = *lpIn;
       if (cTemp == TEXT('&'))
@@ -1518,10 +1518,10 @@ FreeToolbarExtensions(VOID)
 VOID
 SaveRestoreToolbar(BOOL bSave)
 {
-   static TCHAR  szSubKey[] = TEXT("Software\\Microsoft\\File Manager\\Settings");
-   static TCHAR  szValueName [] = TEXT("ToolbarWindow");
+   static WCHAR  szSubKey[] = TEXT("Software\\Microsoft\\File Manager\\Settings");
+   static WCHAR  szValueName [] = TEXT("ToolbarWindow");
 
-   TCHAR szNames[MAXEXTNAME*MAX_EXTENSIONS];    // '\0' between the names replaced with ','
+   WCHAR szNames[MAXEXTNAME*MAX_EXTENSIONS];    // '\0' between the names replaced with ','
    TBSAVEPARAMS tbSave;
 
    if (bSave) {
@@ -1567,7 +1567,7 @@ SaveRestoreToolbar(BOOL bSave)
          COUNTOF(szNames), szTheINIFile);
 
       for (pName=szNames; pName && *pName; pName=pEnd) {
-         TCHAR szName[MAXEXTNAME];
+         WCHAR szName[MAXEXTNAME];
 
          pEnd = StrChr(pName, TEXT(','));
          if (pEnd)

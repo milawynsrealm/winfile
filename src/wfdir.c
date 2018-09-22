@@ -2147,7 +2147,7 @@ FixTabsAndThings(
    INT i;
    HDC hdc;
    HFONT hOld;
-   TCHAR szBuf[30];
+   WCHAR szBuf[30];
    SIZE size;
 
    //

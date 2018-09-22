@@ -137,16 +137,16 @@ HDROP CreateDropFiles(POINT pt, BOOL fNC, LPTSTR pszFiles)
 	LPTSTR szSrc;
 
     LPDROPFILES lpdfs;
-    TCHAR szFile[MAXPATHLEN];
+    WCHAR szFile[MAXPATHLEN];
 
-	cbList = sizeof(DROPFILES) + sizeof(TCHAR);
+	cbList = sizeof(DROPFILES) + sizeof(WCHAR);
 
 	szSrc = pszFiles;
     while (szSrc = GetNextFile(szSrc, szFile, COUNTOF(szFile))) 
 	{
         QualifyPath(szFile);
 
-		cbList += (wcslen(szFile) + 1)*sizeof(TCHAR);
+		cbList += (wcslen(szFile) + 1)*sizeof(WCHAR);
 	}
 
     hDrop = GlobalAlloc(GMEM_DDESHARE|GMEM_MOVEABLE|GMEM_ZEROINIT, cbList);
@@ -169,7 +169,7 @@ HDROP CreateDropFiles(POINT pt, BOOL fNC, LPTSTR pszFiles)
 
        lstrcpy((LPTSTR)lpList, szFile);
 
-       lpList += (wcslen(szFile) + 1)*sizeof(TCHAR);
+       lpList += (wcslen(szFile) + 1)*sizeof(WCHAR);
     }
 
 	GlobalUnlock(hDrop);
@@ -179,7 +179,7 @@ HDROP CreateDropFiles(POINT pt, BOOL fNC, LPTSTR pszFiles)
 
 #define BLOCK_SIZE 512
 
-static HRESULT StreamToFile(IStream *stream, TCHAR *szFile)
+static HRESULT StreamToFile(IStream *stream, WCHAR *szFile)
 {
     byte buffer[BLOCK_SIZE];
     DWORD bytes_read;
@@ -280,7 +280,7 @@ LPWSTR QuotedContentList(IDataObject *pDataObject)
                 if (hr == S_OK) 
 				{
 					// Dump stream to a file
-					TCHAR szTempFile[MAXPATHLEN*2+1];
+					WCHAR szTempFile[MAXPATHLEN*2+1];
 
 					lstrcpy(szTempFile, szTempPath);
 		            AddBackslash(szTempFile);

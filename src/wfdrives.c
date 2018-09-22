@@ -304,7 +304,7 @@ VOID
 DrawDrive(HDC hdc, INT x, INT y, DRIVEIND driveInd, BOOL bCurrent, BOOL bFocus)
 {
    RECT rc;
-   TCHAR szTemp[2];
+   WCHAR szTemp[2];
    DWORD rgb;
    DRIVE drive;
 
@@ -335,7 +335,7 @@ DrawDrive(HDC hdc, INT x, INT y, DRIVEIND driveInd, BOOL bCurrent, BOOL bFocus)
    if (bFocus)
       DrawFocusRect(hdc, &rc);
 
-   szTemp[0] = (TCHAR)(chFirstDrive + rgiDrive[driveInd]);
+   szTemp[0] = (WCHAR)(chFirstDrive + rgiDrive[driveInd]);
    SetBkMode(hdc, TRANSPARENT);
 
    rgb = SetTextColor(hdc, rgb);
@@ -459,7 +459,7 @@ VOID
 DrivesDropObject(HWND hWnd, LPDROPSTRUCT lpds)
 {
     DRIVEIND driveInd;
-    TCHAR szPath[MAXPATHLEN * 2];
+    WCHAR szPath[MAXPATHLEN * 2];
     LPTSTR pFrom;
     BOOL bIconic;
     HWND hwndChild;
@@ -690,7 +690,7 @@ DrivesWndProc(HWND hWnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
   static INT nDriveDragging = -1;
   HWND hwndChild;
 
-  TCHAR szDir[MAXPATHLEN];
+  WCHAR szDir[MAXPATHLEN];
 
   hwndChild = (HWND)SendMessage(hwndMDIClient, WM_MDIGETACTIVE, 0, 0L);
 

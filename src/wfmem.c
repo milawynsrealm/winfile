@@ -59,7 +59,7 @@ MemNew()
    //
 #ifdef TESTING
 // TESTING
-   {TCHAR szT[100]; wsprintf(szT,
+   {WCHAR szT[100]; wsprintf(szT,
    L"MemNew %x\n", lpStart); OutputDebugString(szT);}
 #endif
 
@@ -77,7 +77,7 @@ MemDelete(
 
 #ifdef TESTING
 // TESTING
-   {TCHAR szT[100]; wsprintf(szT,
+   {WCHAR szT[100]; wsprintf(szT,
    L"MemDelete %x\n", lpStart); OutputDebugString(szT);}
 #endif
 
@@ -233,7 +233,7 @@ MemClone(LPXDTALINK lpStart)
 
 #ifdef TESTING
 // TESTING
-   {TCHAR szT[100]; wsprintf(szT,
+   {WCHAR szT[100]; wsprintf(szT,
    L"MemClone %x ", lpStart); OutputDebugString(szT);}
 #endif
 
@@ -278,7 +278,7 @@ MemClone(LPXDTALINK lpStart)
 
 #ifdef TESTING
 // TESTING
-   {TCHAR szT[100]; wsprintf(szT,
+   {WCHAR szT[100]; wsprintf(szT,
    L"rets %x\n", lpStartCopy); OutputDebugString(szT);}
 #endif
 

@@ -250,7 +250,7 @@ IsLFNDrive(LPTSTR szDrive)
       INT i;
       LPTSTR p;
 
-      TCHAR szRootPath[MAXPATHLEN];
+      WCHAR szRootPath[MAXPATHLEN];
 
       if (ISUNCPATH(szDrive)) {
 
@@ -425,7 +425,7 @@ IsLFN(LPTSTR pName)
 BOOL
 LFNMergePath(LPTSTR lpMask, LPTSTR lpFile)
 {
-   TCHAR szT[MAXPATHLEN*2];
+   WCHAR szT[MAXPATHLEN*2];
    INT iResStrlen;
 
    //
@@ -474,7 +474,7 @@ DWORD
 WFCopy(LPTSTR pszFrom, LPTSTR pszTo)
 {
     DWORD dwRet;
-    TCHAR szTemp[MAXPATHLEN];
+    WCHAR szTemp[MAXPATHLEN];
 
     Notify(hdlgProgress, IDS_COPYINGMSG, pszFrom, pszTo);
 

@@ -78,7 +78,7 @@ VOID
 StarFilename(LPTSTR pszPath)
 {
    LPTSTR p;
-   TCHAR szTemp[MAXPATHLEN];
+   WCHAR szTemp[MAXPATHLEN];
 
    // Remove any leading path information.
    StripPath(pszPath);
@@ -108,7 +108,7 @@ SearchDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
   LPTSTR     p;
   MDICREATESTRUCT   MDICS;
-  TCHAR szStart[MAXFILENAMELEN];
+  WCHAR szStart[MAXFILENAMELEN];
 
   UNREFERENCED_PARAMETER(lParam);
 
@@ -277,9 +277,9 @@ RunDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
   LPTSTR p,pDir,pFile,pPar;
   register DWORD ret;
   LPTSTR pDir2;
-  TCHAR szTemp[MAXPATHLEN];
-  TCHAR szTemp2[MAXPATHLEN];
-  TCHAR sz3[RUN_LENGTH];
+  WCHAR szTemp[MAXPATHLEN];
+  WCHAR szTemp2[MAXPATHLEN];
+  WCHAR sz3[RUN_LENGTH];
 
   UNREFERENCED_PARAMETER(lParam);
 
@@ -388,7 +388,7 @@ EnableCopy(HWND hDlg, BOOL bCopy)
 VOID
 MessWithRenameDirPath(LPTSTR pszPath)
 {
-   TCHAR szPath[MAXPATHLEN];
+   WCHAR szPath[MAXPATHLEN];
    LPTSTR lpsz;
 
    // absolute path? don't tamper with it!
@@ -440,11 +440,11 @@ SuperDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
    // WFMoveCopyDrive tries to append \*.* to directories and
    // probably other nasty stuff.  2* for safety.
    //
-   TCHAR  szTo[2*MAXPATHLEN];
+   WCHAR  szTo[2*MAXPATHLEN];
    static BOOL   bTreeHasFocus;
 
 JAPANBEGIN
-   TCHAR         szStr[256];
+   WCHAR         szStr[256];
 JAPANEND
 
    static PCOPYINFO pCopyInfo;
@@ -529,7 +529,7 @@ JAPANEND
             wParam = IDD_FROM;
          else
          {
-            TCHAR szDirs[MAXPATHLEN];
+            WCHAR szDirs[MAXPATHLEN];
             LPTSTR rgszDirs[MAX_DRIVES];
             int drive, driveCur;
         	BOOL fFirst = TRUE;
@@ -816,7 +816,7 @@ DWORD dwHandle;         // version subsystem handle
 HANDLE hmemVersion=0;   // global handle for version data buffer
 LPTSTR lpVersionBuffer; // pointer to version data
 DWORD dwVersionSize;    // size of the version data
-TCHAR szVersionKey[60]; // big enough for anything we need
+WCHAR szVersionKey[60]; // big enough for anything we need
 LPWORD lpXlate;         // ptr to translations data
 UINT cXlate;            // count of translations
 LPWSTR pszXlate = NULL;
@@ -828,8 +828,8 @@ UINT cchXlateString;
 #define VER_BLOCK_OFFSET 24    // to get block size (chars)
 
 // (not localized)
-TCHAR szFileVersion[]    = TEXT("FileVersion");
-TCHAR szLegalCopyright[] = TEXT("LegalCopyright");
+WCHAR szFileVersion[]    = TEXT("FileVersion");
+WCHAR szLegalCopyright[] = TEXT("LegalCopyright");
 
 WCHAR wszFileVersion[] = L"FileVersion";
 WCHAR wszLegalCopyright[] = L"LegalCopyright";
@@ -1600,8 +1600,8 @@ AttribsDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
    HCURSOR hCursor;
    DWORD dwAttribsNew, dwAttribs, dwChangeMask;
    UINT state;
-   TCHAR szName[MAXPATHLEN];
-   TCHAR szTemp[MAXPATHLEN];
+   WCHAR szName[MAXPATHLEN];
+   WCHAR szTemp[MAXPATHLEN];
    static INT nType;
    LPWSTR lpszValue;
    INT idx;
@@ -1854,7 +1854,7 @@ MakeDirDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
    //
    // Must be at least MAXPATHLEN
    //
-   TCHAR szPath[MAXPATHLEN*2];
+   WCHAR szPath[MAXPATHLEN*2];
    INT ret;
 
    UNREFERENCED_PARAMETER(lParam);

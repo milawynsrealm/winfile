@@ -50,7 +50,7 @@ INT_PTR
 CALLBACK
 ChooseDriveDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-   TCHAR szDrive[5];
+   WCHAR szDrive[5];
 
    UNREFERENCED_PARAMETER(lParam);
 
@@ -93,7 +93,7 @@ ChooseDriveDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
       case IDOK:
          {
-            TCHAR szTemp[128];
+            WCHAR szTemp[128];
 
             if (dwSuperDlgMode == IDM_DISKCOPY) {
 
@@ -159,9 +159,9 @@ INT_PTR
 CALLBACK
 DiskLabelDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-   TCHAR szNewVol[MAXPATHLEN];
+   WCHAR szNewVol[MAXPATHLEN];
    LPTSTR lpszVol;
-   TCHAR szDrive[] = SZ_ACOLON;
+   WCHAR szDrive[] = SZ_ACOLON;
    DRIVE drive;
    INT i;
 
@@ -316,7 +316,7 @@ FillDriveCapacity(HWND hDlg, INT nDrive, FMIFS_MEDIA_TYPE fmSelect, BOOL fDoPopu
    DWORD MediaCount;
    INT index;
    UINT uiCount;
-   TCHAR szTemp[32];
+   WCHAR szTemp[32];
 
    INT iCurSel = 0;
 
@@ -334,7 +334,7 @@ FillDriveCapacity(HWND hDlg, INT nDrive, FMIFS_MEDIA_TYPE fmSelect, BOOL fDoPopu
    }
 
    if (MediaCount == 1 && fmMedia[0] == FmMediaRemovable) {
-       TCHAR szTmpStr[256];
+       WCHAR szTmpStr[256];
 
        /*
         * We can't format this type of drive, tell the user to run WinDisk.Exe
@@ -515,7 +515,7 @@ INT_PTR
 CALLBACK
 FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
-   TCHAR szBuf[128];
+   WCHAR szBuf[128];
    INT  i, count;
    static INT nLastDriveInd;
    static INT nItemIndex;
@@ -583,7 +583,7 @@ FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
          {
             nItemIndex++;
 
-            wsprintf(szMessage, szBuf, (TCHAR)(CHAR_A+rgiDrive[i]), CHAR_SPACE);
+            wsprintf(szMessage, szBuf, (WCHAR)(CHAR_A+rgiDrive[i]), CHAR_SPACE);
 
             SendDlgItemMessage(hDlg, IDD_DRIVE, CB_INSERTSTRING, count, (LPARAM)szMessage);
             SendDlgItemMessage(hDlg, IDD_DRIVE, CB_SETITEMDATA, count++, MAKELONG(rgiDrive[i], 0));
@@ -691,7 +691,7 @@ FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
          if (bConfirmFormat) {
             LoadString(hAppInstance, IDS_FORMATCONFIRMTITLE, szTitle, COUNTOF(szTitle));
             LoadString(hAppInstance, IDS_FORMATCONFIRM, szBuf, COUNTOF(szBuf));
-            wsprintf(szMessage, szBuf, (TCHAR)(CHAR_A+CancelInfo.Info.Format.iFormatDrive));
+            wsprintf(szMessage, szBuf, (WCHAR)(CHAR_A+CancelInfo.Info.Format.iFormatDrive));
 
             if (MessageBox(hDlg, szMessage, szTitle, MB_ICONEXCLAMATION | MB_YESNO | MB_DEFBUTTON1) != IDYES)
                break;
@@ -748,8 +748,8 @@ FormatSelectDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
     INT   comboxIndex;
     DRIVE drive;
     DWORD dwFormatResult;
-    TCHAR szDrive[CCH_DRIVE] = { 0 };
-    TCHAR szDlgTitle[CCH_DLG_TITLE] = { 0 };
+    WCHAR szDrive[CCH_DRIVE] = { 0 };
+    WCHAR szDlgTitle[CCH_DLG_TITLE] = { 0 };
 
     switch (wMsg)
     {
@@ -835,7 +835,7 @@ AboutDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
     WORD wMinorVersion   = 0;
     WORD wBuildNumber    = 0;
     WORD wRevisionNumber = 0;
-    TCHAR szVersion[CCH_VERSION] = { 0 };
+    WCHAR szVersion[CCH_VERSION] = { 0 };
 
     switch (wMsg)
     {
@@ -1102,7 +1102,7 @@ CancelDlgProc(HWND hDlg,
 {
    static RECT rectGG;              // GasGauge rectangle
    DWORD Ignore;
-   TCHAR szTemp[128];
+   WCHAR szTemp[128];
    static BOOL bLastQuick;
 
    switch (message) {
@@ -1194,7 +1194,7 @@ CancelDlgProc(HWND hDlg,
        {
        HDC         hDC;
        PAINTSTRUCT ps;
-       TCHAR       buffer[32];
+       WCHAR       buffer[32];
        SIZE        size;
        INT         xText, yText;
        INT         nDivideRects;
@@ -1309,7 +1309,7 @@ CALLBACK
 ProgressDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
    static PCOPYINFO pCopyInfo;
-   TCHAR szTitle[MAXTITLELEN];
+   WCHAR szTitle[MAXTITLELEN];
 
    switch (wMsg) {
    case WM_INITDIALOG:
@@ -1692,7 +1692,7 @@ CopyDiskEnd()
 VOID
 FormatEnd()
 {
-   TCHAR szBuf[128];
+   WCHAR szBuf[128];
    HWND hwnd, hwndActive;
 
    //
@@ -1830,7 +1830,7 @@ DestroyCancelWindow()
 BOOL GetProductVersion(WORD * pwMajor, WORD * pwMinor, WORD * pwBuild, WORD * pwRevision)
 {
     BOOL               success = FALSE;
-    TCHAR              szCurrentModulePath[MAX_PATH];
+    WCHAR              szCurrentModulePath[MAX_PATH];
     DWORD              cchPath;
     DWORD              cbVerInfo;
     LPVOID             pFileVerInfo;

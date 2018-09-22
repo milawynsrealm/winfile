@@ -26,8 +26,8 @@ VOID (APIENTRY *lpfnRegisterPenApp)(WORD, BOOL);
 
 BYTE chPenReg[] = "RegisterPenApp";    // used in GetProcAddress call
 
-TCHAR szNTlanman[] = TEXT("ntlanman.dll");
-TCHAR szHelv[] = TEXT("MS Shell Dlg");
+WCHAR szNTlanman[] = TEXT("ntlanman.dll");
+WCHAR szHelv[] = TEXT("MS Shell Dlg");
 /*
 ** 6/13/95 FloydR Note re: MS Gothic, MS Shell Dlg and System fonts for Japan.
 ** For 3.51J, the "MS Shell Dlg" font is linked to the "MS Gothic" Japanese
@@ -66,7 +66,7 @@ BiasMenu(HMENU hMenu, UINT Bias)
 {
    UINT pos, id, count;
    HMENU hSubMenu;
-   TCHAR szMenuString[MENU_STRING_SIZ];
+   WCHAR szMenuString[MENU_STRING_SIZ];
 
    count = GetMenuItemCount(hMenu);
 
@@ -99,8 +99,8 @@ BiasMenu(HMENU hMenu, UINT Bias)
 VOID
 InitExtensions()
 {
-   TCHAR szBuf[PROFILE_STRING_SIZ];
-   TCHAR szPath[MAXPATHLEN];
+   WCHAR szBuf[PROFILE_STRING_SIZ];
+   WCHAR szPath[MAXPATHLEN];
    LPTSTR p;
    HANDLE hMod;
    FM_EXT_PROC fp;
@@ -214,7 +214,7 @@ LoadFail:
 VOID
 GetSettings()
 {
-   TCHAR szTemp[128];
+   WCHAR szTemp[128];
    INT size;
    INT weight;
 
@@ -331,10 +331,10 @@ VOID
 InitMenus()
 {
    HMENU hMenu;
-   TCHAR szValue[MAXPATHLEN];
+   WCHAR szValue[MAXPATHLEN];
    HMENU hMenuOptions;
 
-   TCHAR szPathName[MAXPATHLEN];
+   WCHAR szPathName[MAXPATHLEN];
 
    GetPrivateProfileString(szSettings, szUndelete, szNULL, szValue, COUNTOF(szValue), szTheINIFile);
 
@@ -516,9 +516,9 @@ UINT  MapMenuPosToIDM(UINT pos)
  */
 
 VOID
-BoilThatDustSpec(register TCHAR *pStart, BOOL bLoadIt)
+BoilThatDustSpec(register WCHAR *pStart, BOOL bLoadIt)
 {
-   register TCHAR *pEnd;
+   register WCHAR *pEnd;
    DWORD         ret;
    BOOL          bFinished;
 

@@ -61,8 +61,8 @@ LONGLONG TotalUncompressedFileCount = 0;
 LARGE_INTEGER TotalFileSize;
 LARGE_INTEGER TotalCompressedSize;
 
-TCHAR  szGlobalFile[MAXPATHLEN];
-TCHAR  szGlobalDir[MAXPATHLEN];
+WCHAR  szGlobalFile[MAXPATHLEN];
+WCHAR  szGlobalDir[MAXPATHLEN];
 
 HDC   hDCdir = NULL;
 DWORD dxdir;
@@ -315,7 +315,7 @@ VOID wfProgressYield()
 VOID DisplayUncompressProgress(
     int iType)
 {
-    TCHAR szNum[30];
+    WCHAR szNum[30];
 
     if (!bShowProgress)
     {
@@ -385,7 +385,7 @@ INT_PTR CALLBACK UncompressProgDlg(
     WPARAM wParam,
     LPARAM lParam)
 {
-    TCHAR szTemp[120];
+    WCHAR szTemp[120];
     RECT  rect;
 
     switch (nMsg)
@@ -465,8 +465,8 @@ INT_PTR CALLBACK UncompressProgDlg(
 void DisplayCompressProgress(
     int iType)
 {
-    TCHAR szTemp[120];
-    TCHAR szNum[30];
+    WCHAR szTemp[120];
+    WCHAR szNum[30];
     LARGE_INTEGER Percentage;
 
 
@@ -604,7 +604,7 @@ INT_PTR CALLBACK CompressProgDlg(
     WPARAM wParam,
     LPARAM lParam)
 {
-    TCHAR szTemp[120];
+    WCHAR szTemp[120];
     RECT  rect;
 
     switch (nMsg)
@@ -692,9 +692,9 @@ BOOL WFCheckCompress(
     BOOL *bIgnoreAll)
 {
     DWORD   dwFlags, dwAttribs;
-    TCHAR   szTitle[MAXTITLELEN];
-    TCHAR   szTemp[MAXMESSAGELEN];
-    TCHAR   szFilespec[MAXPATHLEN];
+    WCHAR   szTitle[MAXTITLELEN];
+    WCHAR   szTemp[MAXMESSAGELEN];
+    WCHAR   szFilespec[MAXPATHLEN];
     BOOL    bCompressionAttrChange;
     BOOL    bIsDir;
     BOOL    bRet = TRUE;
@@ -1717,7 +1717,7 @@ VOID RedrawAllTreeWindows()
     int cItems, ctr;
     PDNODE pNode;
     DWORD dwAttribs;
-    TCHAR szPathName[MAXPATHLEN * 2];
+    WCHAR szPathName[MAXPATHLEN * 2];
 
 
     for (hwnd = GetWindow(hwndMDIClient, GW_CHILD);

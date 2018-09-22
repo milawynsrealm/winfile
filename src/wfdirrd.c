@@ -439,7 +439,7 @@ BuildDocumentStringWorker()
 {
    register LPTSTR   p;
    register INT      uLen;
-   TCHAR             szT[EXTSIZ + 1];
+   WCHAR             szT[EXTSIZ + 1];
    INT               i,j;
    LPTSTR            pszDocuments = NULL;
    HKEY hk;
@@ -524,8 +524,8 @@ BuildDocumentStringWorker()
       //
       for (i=0, dwStatus = 0L; ERROR_NO_MORE_ITEMS!=dwStatus; i++) {
 		 DWORD cbClass, cbIconFile;
-		 TCHAR szClass[MAXPATHLEN];
-		 TCHAR szIconFile[MAXPATHLEN];
+		 WCHAR szClass[MAXPATHLEN];
+		 WCHAR szIconFile[MAXPATHLEN];
 
          dwStatus = RegEnumKey(hk, (DWORD)i, szT, COUNTOF(szT));
 
@@ -543,7 +543,7 @@ BuildDocumentStringWorker()
 		 if (WFRegGetValueW(hk, szT, NULL, NULL, szClass, &cbClass) == ERROR_SUCCESS)
 		 {
 		    DWORD cbClass2;
-			TCHAR szClass2[MAXPATHLEN];
+			WCHAR szClass2[MAXPATHLEN];
 
 			cbClass2 = sizeof(szClass2);
 			lstrcat(szClass, L"\\CurVer");

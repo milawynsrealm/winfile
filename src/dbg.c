@@ -14,8 +14,8 @@
 
 #if DBG
 
-TCHAR szAsrtFmt[] = TEXT("Assertion Failure in %s at %d\n");
-TCHAR szFmt[300];
+WCHAR szAsrtFmt[] = L"Assertion Failure in %s at %d\n";
+WCHAR szFmt[300];
 unsigned long TraceFlags = 
       BF_START
 //     | BF_PROCTRACE
@@ -44,7 +44,7 @@ DWORD tf,
 LPTSTR lpstr)
 {
     if (tf & TraceFlags) {
-	 wsprintf(szFmt,TEXT("%s\n"),lpstr);
+	 wsprintf(szFmt, L"%s\n", lpstr);
 	 OutputDebugString(szFmt);
 //        DbgPrint("%s\n", lpstr);
         if (tf & BreakFlags) {
@@ -60,7 +60,7 @@ LPTSTR file,
 int line)
 {
     if (bf & BreakFlags) {
-	 wsprintf(szFmt,TEXT("BREAK at %s:%d\n"), file, line);
+	 wsprintf(szFmt, L"BREAK at %s:%d\n", file, line);
 	 OutputDebugString(szFmt);
 //        DbgPrint("BREAK at %s:%d\n", file, line);
         DebugBreak();
@@ -77,7 +77,7 @@ LPTSTR p1)
 	 wsprintf(szFmt,fmt, p1);
 	 OutputDebugString(szFmt);
 //	 DbgPrint("%d",GetTickCount());
-	 OutputDebugString(TEXT("\n"));
+	 OutputDebugString(L"\n");
 //        DbgPrint(fmt, p1);
 //        DbgPrint("\n");
     }
@@ -90,13 +90,13 @@ LPTSTR p1)
 VOID DbgEnter(
 LPTSTR funName)
 {
-    DbgPrint1(BF_PROCTRACE, TEXT("> %s "), funName);
+    DbgPrint1(BF_PROCTRACE, L"> %s ", funName);
 }
 
 VOID DbgLeave(
 LPTSTR funName)
 {
-    DbgPrint1(BF_PROCTRACE, TEXT(" <%s "), funName);
+    DbgPrint1(BF_PROCTRACE, L" <%s ", funName);
 }
 
 
@@ -105,7 +105,7 @@ LPTSTR funName,
 LPTSTR msgName)
 {
     if (BF_MSGTRACE & TraceFlags) {
-	 wsprintf(szFmt,TEXT("MSG: %s - %s\n"), funName, msgName);
+	 wsprintf(szFmt, L"MSG: %s - %s\n", funName, msgName);
 	 OutputDebugString(szFmt);
 //        DbgPrint("MSG: %s - %s\n", funName, msgName);
     }
@@ -119,7 +119,7 @@ LPTSTR funName,
 WORD msgId)
 {
     if (BF_DEFMSGTRACE & TraceFlags) {
-	 wsprintf(szFmt,TEXT("MSG: %s - default(0x%x)\n"), funName, msgId);
+	 wsprintf(szFmt, L"MSG: %s - default(0x%x)\n", funName, msgId);
 	 OutputDebugString(szFmt);
 //        DbgPrint("MSG: %s - default(0x%x)\n", funName, msgId);
     }

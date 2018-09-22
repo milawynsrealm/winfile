@@ -16,8 +16,8 @@ static DWORD pdwOrders[] =
    IDS_ORDERB, IDS_ORDERKB, IDS_ORDERMB, IDS_ORDERGB, IDS_ORDERTB
 } ;
 
-static TCHAR szFormat[] = TEXT("%s%02d");
-extern TCHAR szInternational[];
+static WCHAR szFormat[] = TEXT("%s%02d");
+extern WCHAR szInternational[];
 
 //
 // atoi with decimal comma separators
@@ -27,7 +27,7 @@ ShortSizeFormatInternal(LPTSTR szBuf, LARGE_INTEGER qw)
 {
    INT i;
    UINT uInt, uLen, uDec;
-   TCHAR szTemp[10], szOrder[20];
+   WCHAR szTemp[10], szOrder[20];
 
    LARGE_INTEGER qConstant;
    DWORD dw;

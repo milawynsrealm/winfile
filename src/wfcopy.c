@@ -231,13 +231,13 @@ BOOL
 QualifyPath(LPTSTR lpszPath)
 {
     INT cb, nSpaceLeft, i, j;
-    TCHAR szTemp[MAXPATHLEN];
+    WCHAR szTemp[MAXPATHLEN];
     DRIVE drive = 0;
     LPTSTR pOrig, pT;
     BOOL flfn = FALSE;
     BOOL fQuote = FALSE;
 
-    TCHAR szDrive[] = SZ_ACOLONSLASH;
+    WCHAR szDrive[] = SZ_ACOLONSLASH;
 
     LPTSTR lpszDot;
     UINT uLen;
@@ -375,7 +375,7 @@ JAPANEND
     }
 
     if (CHAR_BACKSLASH == pOrig[0]) {
-      lpszPath[0] = (TCHAR)drive + (TCHAR)'A';
+      lpszPath[0] = (WCHAR)drive + (WCHAR)'A';
       lpszPath[1] = CHAR_COLON;
       lpszPath[2] = CHAR_BACKSLASH;
       lpszPath[3] = CHAR_NULL;
@@ -653,7 +653,7 @@ BOOL
 IsDirectory(LPTSTR pPath)
 {
   LPTSTR pT;
-  TCHAR szTemp[MAXPATHLEN];
+  WCHAR szTemp[MAXPATHLEN];
 
   if (IsRootDirectory(pPath))
       return TRUE;
@@ -692,14 +692,14 @@ IsTheDiskReallyThere(
    BOOL bModal)
 {
    register DRIVE drive;
-   TCHAR szTemp[MAXMESSAGELEN];
-   TCHAR szMessage[MAXMESSAGELEN];
-   TCHAR szTitle[128];
+   WCHAR szTemp[MAXMESSAGELEN];
+   WCHAR szMessage[MAXMESSAGELEN];
+   WCHAR szTitle[128];
    INT err = 0;
    DWORD dwError;
 
    BOOL bTriedRoot = FALSE;
-   TCHAR szDrive[] = SZ_ACOLONSLASH;
+   WCHAR szDrive[] = SZ_ACOLONSLASH;
    HCURSOR hCursor;
 
    STKCHK();
@@ -906,7 +906,7 @@ SetDlgItemPath(HWND hDlg, INT id, LPTSTR pszPath)
    RECT rc;
    HDC hdc;
    HFONT hFont;
-   TCHAR szPath[MAXPATHLEN+1];      // can have one extra TCHAR
+   WCHAR szPath[MAXPATHLEN+1];      // can have one extra WCHAR
    HWND hwnd;
 
    hwnd = GetDlgItem(hDlg, id);
@@ -1110,9 +1110,9 @@ DWORD
 NetCheck(LPTSTR pPath, DWORD dwType)
 {
    DWORD err;
-   TCHAR szT[MAXSUGGESTLEN];
-   TCHAR szProvider[128];
-   TCHAR szTitle[128];
+   WCHAR szT[MAXSUGGESTLEN];
+   WCHAR szProvider[128];
+   WCHAR szTitle[128];
 
    //
    // we will notify the winnet driver on all directory operations
@@ -1159,7 +1159,7 @@ NetCheck(LPTSTR pPath, DWORD dwType)
 DWORD
 IsInvalidPath(register LPTSTR pPath)
 {
-  TCHAR  sz[9];
+  WCHAR  sz[9];
   INT   n = 0;
 
   if (lstrlen(pPath) >= MAXPATHLEN)
@@ -1236,7 +1236,7 @@ GetNameDlgProc(
    WPARAM wParam,
    LPARAM lParam)
 {
-    TCHAR szT[14];
+    WCHAR szT[14];
     LPTSTR p;
     INT i, j, cMax, fDot;
 
@@ -1813,7 +1813,7 @@ MergeNames:
 VOID
 CdDotDot (LPTSTR szOrig)
 {
-   TCHAR szTemp[MAXPATHLEN];
+   WCHAR szTemp[MAXPATHLEN];
 
    lstrcpy(szTemp, szOrig);
    StripFilespec(szTemp);
@@ -1824,7 +1824,7 @@ CdDotDot (LPTSTR szOrig)
 BOOL
 IsCurrentDirectory (LPTSTR p)
 {
-   TCHAR szTemp[MAXPATHLEN];
+   WCHAR szTemp[MAXPATHLEN];
 
    GetDriveDirectory(DRIVEID(p) + 1, szTemp);
 
@@ -1848,7 +1848,7 @@ INT
 CheckMultiple(register LPTSTR pInput)
 {
   LPTSTR pT;
-  TCHAR szTemp[MAXPATHLEN];
+  WCHAR szTemp[MAXPATHLEN];
 
   /* Wildcards imply multiple files. */
   if (IsWild(pInput))
@@ -1919,7 +1919,7 @@ DialogEnterFileStuff(register HWND hwnd)
 VOID
 Notify(HWND hDlg, WORD idMessage, LPTSTR szFrom, LPTSTR szTo)
 {
-   TCHAR szTemp[40];
+   WCHAR szTemp[40];
 
    if (idMessage) {
       LoadString(hAppInstance, idMessage, szTemp, COUNTOF(szTemp));
@@ -1951,7 +1951,7 @@ BOOL
 IsWindowsFile(LPTSTR szFileOEM)
 {
    HANDLE hMod;
-   TCHAR szModule[MAXPATHLEN];
+   WCHAR szModule[MAXPATHLEN];
 
    //
    // kernel can't load an lfn...
@@ -2002,7 +2002,7 @@ DWORD
 WF_CreateDirectory(HWND hwndParent, LPTSTR szDest, LPTSTR szSrc)
 {
    DWORD ret = 0;
-   TCHAR szTemp[MAXPATHLEN + 1];    // +1 for AddBackslash()
+   WCHAR szTemp[MAXPATHLEN + 1];    // +1 for AddBackslash()
    LPTSTR p, pLastSpecEnd;
 
    LFNDTA DTAHack;
@@ -2186,12 +2186,12 @@ WFMoveCopyDriverThread(LPVOID lpParameter)
    DWORD dwAttr;                      // File attributes
    DWORD dwResponse;                  // Response from ConfirmDialog call
    DWORD oper = 0;                    // Disk operation being performed
-   TCHAR szDestSpec[MAXFILENAMELEN+1]; // Dest file spec
-   TCHAR szDest[2*MAXPATHLEN];         // Dest file (ANSI string)
+   WCHAR szDestSpec[MAXFILENAMELEN+1]; // Dest file spec
+   WCHAR szDest[2*MAXPATHLEN];         // Dest file (ANSI string)
 
-   TCHAR szTemp[MAXPATHLEN];
+   WCHAR szTemp[MAXPATHLEN];
 
-   TCHAR szSource[MAXPATHLEN];         // Source file (ANSI string)
+   WCHAR szSource[MAXPATHLEN];         // Source file (ANSI string)
    LFNDTA DTADest;                    // DTA block for reporting dest errors
    PLFNDTA pDTA;                      // DTA pointer for source errors
    PCOPYROOT pcr;                     // Structure for searching source tree
@@ -2842,7 +2842,7 @@ SkipMKDir:
 
       case OPER_DOFILE | FUNC_RENAME:
          {
-            TCHAR save1,save2;
+            WCHAR save1,save2;
             LPTSTR p;
 
             if (CurIDS != IDS_RENAMINGMSG) {
@@ -3189,8 +3189,8 @@ ExitLoop:
    //
    if (bDirNotEmpty && !pCopyInfo->bUserAbort) {
 
-      TCHAR szMessage[MAXMESSAGELEN];
-      TCHAR szTitle[MAXTITLELEN];
+      WCHAR szMessage[MAXMESSAGELEN];
+      WCHAR szTitle[MAXTITLELEN];
 
       LoadString( hAppInstance, IDS_COPYMOVENOTCOMPLETED, szTitle, COUNTOF( szTitle ));
       LoadString( hAppInstance, IDS_DIRREMAINS, szMessage, COUNTOF (szMessage));
@@ -3431,11 +3431,11 @@ CopyError(LPTSTR pszSource,
    BOOL bErrorOnDest,
    BOOL bFatalError)
 {
-   TCHAR szVerb[MAXERRORLEN];          /* Verb describing error */
-   TCHAR szReason[MAXERRORLEN];        /* Reason for error */
-   TCHAR szFile[MAXPATHLEN+1];
-   TCHAR szTitle[MAXTITLELEN];
-   TCHAR szMessage[MAXMESSAGELEN];
+   WCHAR szVerb[MAXERRORLEN];          /* Verb describing error */
+   WCHAR szReason[MAXERRORLEN];        /* Reason for error */
+   WCHAR szFile[MAXPATHLEN+1];
+   WCHAR szTitle[MAXTITLELEN];
+   WCHAR szMessage[MAXMESSAGELEN];
    HDC hDC;
 
    if (dwError == DE_OPCANCELLED)    // user abort
@@ -3517,7 +3517,7 @@ CopyError(LPTSTR pszSource,
 INT
 CopyMoveRetry(LPTSTR pszDest, INT nError, PBOOL pbErrorOnDest)
 {
-   TCHAR szReason[128]; /* Error message string */
+   WCHAR szReason[128]; /* Error message string */
    LPTSTR pTemp;         /* Pointer into filename */
    WORD wFlags;        /* Message box flags */
    INT  result;        /* Return from MessageBox call */

@@ -23,7 +23,7 @@ GetDiskSpace(DRIVE drive,
    DWORD dwFreeClusters;
    DWORD dwTotalClusters;
 
-   TCHAR szDriveRoot[] = SZ_ACOLONSLASH;
+   WCHAR szDriveRoot[] = SZ_ACOLONSLASH;
 
    DRIVESET(szDriveRoot, drive);
 
@@ -46,7 +46,7 @@ GetDiskSpace(DRIVE drive,
 INT
 ChangeVolumeLabel(DRIVE drive, LPTSTR lpNewVolName)
 {
-   TCHAR szDrive[] = SZ_ACOLON;
+   WCHAR szDrive[] = SZ_ACOLON;
 
    DRIVESET(szDrive,drive);
 
@@ -89,7 +89,7 @@ FillVolumeInfo(DRIVE drive, LPTSTR lpszVolName, PDWORD pdwVolumeSerialNumber,
    PDWORD pdwMaximumComponentLength, PDWORD pdwFileSystemFlags,
    LPTSTR lpszFileSysName)
 {
-   TCHAR szDrive[] = SZ_ACOLONSLASH;
+   WCHAR szDrive[] = SZ_ACOLONSLASH;
    PDRIVEINFO pDriveInfo = &aDriveInfo[drive];
 
    DRIVESET(szDrive,drive);

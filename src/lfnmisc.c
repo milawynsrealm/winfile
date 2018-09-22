@@ -45,7 +45,7 @@ I_LFNCanon(WORD CanonType, LPTSTR InFile, LPTSTR OutFile)
    LPTSTR       outs = OutFile;
    unsigned    size;
    unsigned    trails;
-   TCHAR        c;
+   WCHAR        c;
 
    if (!InFile || !OutFile)
       return ERROR_INVALID_PARAMETER;
@@ -160,7 +160,7 @@ I_LFNCanon(WORD CanonType, LPTSTR InFile, LPTSTR OutFile)
 #define PATH_SEPARATOR          CHAR_BACKSLASH
 #define DOT                     CHAR_DOT
 
-static TCHAR ach83InvalidChars[] = TEXT("<>|[]=;+/, \"\x01\x02\x03\x04\x05\x06\x07\
+static WCHAR ach83InvalidChars[] = TEXT("<>|[]=;+/, \"\x01\x02\x03\x04\x05\x06\x07\
 \x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\
 \x1b\x1c\x1d\x1e\x1f") ;
 
@@ -226,7 +226,7 @@ WORD I_LFNEditName( LPTSTR lpSrc, LPTSTR lpEd, LPTSTR lpRes, INT iResBufSize )
 
          case CHAR_STAR:
             {
-               TCHAR delimit = *(lpEd+1);
+               WCHAR delimit = *(lpEd+1);
 
 #ifdef USELASTDOT
 

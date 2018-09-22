@@ -23,10 +23,10 @@ VOID
 SaveWindows(HWND hwndMain)
 {
    // 2* added to both lines
-   TCHAR szPath[2*MAXPATHLEN];
-   TCHAR buf2[2*MAXPATHLEN + 6*12];
+   WCHAR szPath[2*MAXPATHLEN];
+   WCHAR buf2[2*MAXPATHLEN + 6*12];
 
-   TCHAR key[10];
+   WCHAR key[10];
    INT dir_num;
    HWND hwnd;
    BOOL bCounting;
@@ -230,8 +230,8 @@ IncludeDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
   HWND hwndActive;
 
   // To handle LONG paths with LONG filters (illegal)
-  TCHAR szTemp[2*MAXPATHLEN];
-  TCHAR szInclude[MAXFILENAMELEN];
+  WCHAR szTemp[2*MAXPATHLEN];
+  WCHAR szInclude[MAXFILENAMELEN];
   HWND hwndDir;
 
   UNREFERENCED_PARAMETER(lParam);
@@ -332,8 +332,8 @@ CALLBACK
 SelectDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
         HWND hwndActive, hwnd;
-        TCHAR szList[128];
-        TCHAR szSpec[MAXFILENAMELEN];
+        WCHAR szList[128];
+        WCHAR szSpec[MAXFILENAMELEN];
         LPTSTR p;
 
         UNREFERENCED_PARAMETER(lParam);
@@ -409,7 +409,7 @@ FontHookProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
 KOREAJAPANBEGIN
    // Steal from PBrush source to remove @font in the list - SangilJ
-   TCHAR str[LF_FULLFACESIZE], sel[LF_FULLFACESIZE];
+   WCHAR str[LF_FULLFACESIZE], sel[LF_FULLFACESIZE];
    INT index;
    INT cnt;
 KOREAJAPANEND
@@ -482,7 +482,7 @@ NewFont()
    HDC hdc;
    LOGFONT lf;
    CHOOSEFONT cf;
-   TCHAR szBuf[10];
+   WCHAR szBuf[10];
    INT res;
    UINT uOld,uNew;
 
@@ -706,9 +706,9 @@ DoHelp:
 INT_PTR CALLBACK PrefDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
     /* Editor prefrence variables*/
-    TCHAR szTempEditPath[MAX_PATH];
-    TCHAR szPath[MAX_PATH];
-    TCHAR szFilter[MAX_PATH] = { 0 };
+    WCHAR szTempEditPath[MAX_PATH];
+    WCHAR szPath[MAX_PATH];
+    WCHAR szFilter[MAX_PATH] = { 0 };
 
     LoadString(hAppInstance, IDS_EDITFILTER, szFilter, MAX_PATH);
 

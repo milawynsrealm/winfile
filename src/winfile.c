@@ -39,21 +39,12 @@ BOOL bDialogMessage(PMSG pMsg);
 
 extern BOOL bCompressReEntry;
 
-#if defined(UNICODE)
 INT WINAPI 
 wWinMain(
     HINSTANCE hInstance, 
     HINSTANCE hPrevInstance, 
     LPWSTR lpCmdLine, 
     INT nCmdShow)
-#else
-INT APIENTRY
-WinMain(
-   HINSTANCE hInst,
-   HINSTANCE hPrevInst,
-   LPSTR lpCmdLine,
-   INT nCmdShow)
-#endif
 {
    MSG       msg;
    LPWSTR    pszCmdLine;
@@ -304,7 +295,7 @@ InitPopupMenus(UINT uMenus, HMENU hMenu, HWND hwndActive)
          //
 
          // get a buffer big enough for a quoted path
-         TCHAR szTemp[MAX_PATH + 2 * sizeof(TCHAR)];
+         WCHAR szTemp[MAX_PATH + 2 * sizeof(WCHAR)];
 
          lstrcpy( szTemp, pSel);
 
@@ -598,7 +589,7 @@ FrameWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
       if (CancelInfo.hCancelDlg) {
 
-         TCHAR szTemp[128];
+         WCHAR szTemp[128];
 
          if (CancelInfo.Info.Copy.bFormatDest) {
             LoadString(hAppInstance, IDS_FORMATTINGDEST, szTemp, COUNTOF(szTemp));
@@ -612,8 +603,8 @@ FrameWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
 
    case FS_CANCELMESSAGEBOX:
       {
-         TCHAR szMessage[MAXMESSAGELEN];
-         TCHAR szTitle[MAXTITLELEN];
+         WCHAR szMessage[MAXMESSAGELEN];
+         WCHAR szTitle[MAXTITLELEN];
          HWND hwndT;
 
          LoadString(hAppInstance, (UINT)wParam, szTitle, COUNTOF(szTitle));
@@ -643,7 +634,7 @@ FrameWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
       // lParam = iFileCount
 
       if (SearchInfo.hSearchDlg) {
-         TCHAR szTemp[20];
+         WCHAR szTemp[20];
 
          wsprintf(szTemp, SZ_PERCENTD,wParam);
 

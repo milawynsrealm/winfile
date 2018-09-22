@@ -108,8 +108,8 @@ EPExit:
 DWORD
 WFPrint(LPTSTR pSel)
 {
-  TCHAR szFile[MAXPATHLEN];
-  TCHAR szTemp[MAXPATHLEN];
+  WCHAR szFile[MAXPATHLEN];
+  WCHAR szTemp[MAXPATHLEN];
   DWORD ret;
 
   /* Turn off the print button. */
