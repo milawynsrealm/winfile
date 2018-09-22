@@ -4,7 +4,7 @@ This permanent fork of Microsoft's WinFile is designed to be an enhanced version
 
 ## Building WinFile+
 
-Right now, the program is being designed to be built in ReactOS (Server 2003 or later), but it should be fairly easy to compile it elsewhere.
+Right now, the program is being designed to be built in [ReactOS](https://reactos.org/) (Server 2003 or later), but it should be fairly easy to compile it elsewhere.
 
 ## History
 

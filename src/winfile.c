@@ -39,12 +39,21 @@ BOOL bDialogMessage(PMSG pMsg);
 
 extern BOOL bCompressReEntry;
 
+#if defined(UNICODE)
+INT WINAPI 
+wWinMain(
+    HINSTANCE hInstance, 
+    HINSTANCE hPrevInstance, 
+    LPWSTR lpCmdLine, 
+    INT nCmdShow)
+#else
 INT APIENTRY
 WinMain(
    HINSTANCE hInst,
    HINSTANCE hPrevInst,
-   LPSTR pszCmdLineA,
+   LPSTR lpCmdLine,
    INT nCmdShow)
+#endif
 {
    MSG       msg;
    LPWSTR    pszCmdLine;
