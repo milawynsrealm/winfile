@@ -28,77 +28,72 @@ BOOL IsFATName(LPTSTR pName);
  *  Performs the FindFirst operation and the first WFFindNext.
  */
 
-BOOL
-WFFindFirst(
-   LPLFNDTA lpFind,
-   LPTSTR lpName,
-   DWORD dwAttrFilter)
+BOOL WFFindFirst(LPLFNDTA lpFind, LPWSTR lpName, DWORD dwAttrFilter)
 {
-   INT    nLen;
-   LPTSTR pEnd;
+    INT    nLen;
+    LPTSTR pEnd;
 
-   //
-   // We OR these additional bits because of the way DosFindFirst works
-   // in Windows. It returns the files that are specified by the attrfilter
-   // and ORDINARY files too.
-   //
+    //
+    // We OR these additional bits because of the way DosFindFirst works
+    // in Windows. It returns the files that are specified by the attrfilter
+    // and ORDINARY files too.
+    //
 
-   PVOID oldValue;
-   Wow64DisableWow64FsRedirection(&oldValue);
+    PVOID oldValue;
+    Wow64DisableWow64FsRedirection(&oldValue);
 
-   if ((dwAttrFilter & ~(ATTR_DIR | ATTR_HS)) == 0)
+    if ((dwAttrFilter & ~(ATTR_DIR | ATTR_HS)) == 0)
+    {
+        // directories only (hidden or not)
+        lpFind->hFindFile = FindFirstFileEx(lpName, FindExInfoStandard, &lpFind->fd, FindExSearchLimitToDirectories, NULL, 0);
+    }
+    else
+    {
+        // normal case: directories and files
+        lpFind->hFindFile = FindFirstFile(lpName, &lpFind->fd);
+    }
+
+    if (lpFind->hFindFile == INVALID_HANDLE_VALUE)
+        lpFind->err = GetLastError();
+    else
+        lpFind->err = 0;
+
+    // add in attr_* which we want to include in the match even though the caller didn't request them.
+    dwAttrFilter |= ATTR_ARCHIVE | ATTR_READONLY | ATTR_NORMAL | ATTR_REPARSE_POINT |
+        ATTR_TEMPORARY | ATTR_COMPRESSED | ATTR_ENCRYPTED | ATTR_NOT_INDEXED;
+
+    lpFind->fd.dwFileAttributes &= ATTR_USED;
+
+    Wow64RevertWow64FsRedirection(oldValue);
+
+    //
+    // Keep track of length
+    //
+    nLen = lstrlen(lpName);
+    pEnd = &lpName[nLen-1];
+
+    while (CHAR_BACKSLASH != *pEnd)
+    {
+        pEnd--;
+        nLen--;
+    }
+
+    lpFind->nSpaceLeft = MAXPATHLEN-nLen-1;
+
+   if (lpFind->hFindFile != INVALID_HANDLE_VALUE)
    {
-	   // directories only (hidden or not)
-	   lpFind->hFindFile = FindFirstFileEx(lpName, FindExInfoStandard, &lpFind->fd, FindExSearchLimitToDirectories, NULL, 0);
-   }
-   else
-   {
-	   // normal case: directories and files
-	   lpFind->hFindFile = FindFirstFile(lpName, &lpFind->fd);
-   }
-
-   if (lpFind->hFindFile == INVALID_HANDLE_VALUE) {
-       lpFind->err = GetLastError();
-   } else {
-       lpFind->err = 0;
+        lpFind->dwAttrFilter = dwAttrFilter;
+        if ((~dwAttrFilter & lpFind->fd.dwFileAttributes) == 0L || WFFindNext(lpFind))
+            return(TRUE);
+        else
+        {
+            WFFindClose(lpFind);
+            return(FALSE);
+        }
    }
 
-   // add in attr_* which we want to include in the match even though the caller didn't request them.
-   dwAttrFilter |= ATTR_ARCHIVE | ATTR_READONLY | ATTR_NORMAL | ATTR_REPARSE_POINT |
-	   ATTR_TEMPORARY | ATTR_COMPRESSED | ATTR_ENCRYPTED | ATTR_NOT_INDEXED;
-
-   lpFind->fd.dwFileAttributes &= ATTR_USED;
-
-   Wow64RevertWow64FsRedirection(oldValue);
-
-   //
-   // Keep track of length
-   //
-   nLen = lstrlen(lpName);
-   pEnd = &lpName[nLen-1];
-
-   while (CHAR_BACKSLASH != *pEnd) {
-      pEnd--;
-      nLen--;
-   }
-
-   lpFind->nSpaceLeft = MAXPATHLEN-nLen-1;
-
-   if (lpFind->hFindFile != INVALID_HANDLE_VALUE) {
-      lpFind->dwAttrFilter = dwAttrFilter;
-      if ((~dwAttrFilter & lpFind->fd.dwFileAttributes) == 0L ||
-         WFFindNext(lpFind)) {
-         return(TRUE);
-      } else {
-         WFFindClose(lpFind);
-         return(FALSE);
-      }
-   } else {
-      return(FALSE);
-   }
+    return(FALSE);
 }
-
-
 
 /* WFFindNext -
  *
@@ -106,48 +101,48 @@ WFFindFirst(
  *  file matching the dwAttrFilter is found.  On failure WFFindClose is
  *  called.
  */
-BOOL
-WFFindNext(LPLFNDTA lpFind)
+BOOL WFFindNext(LPLFNDTA lpFind)
 {
-	PVOID oldValue;
+    PVOID oldValue;
 	Wow64DisableWow64FsRedirection(&oldValue);
 	
-   while (FindNextFile(lpFind->hFindFile, &lpFind->fd)) {
+    while (FindNextFile(lpFind->hFindFile, &lpFind->fd)) {
 
-	  lpFind->fd.dwFileAttributes &= ATTR_USED;
-   
-      //
-      // only pick files that fit attr filter
-      //
-      if ((lpFind->fd.dwFileAttributes & ~lpFind->dwAttrFilter) != 0)
-         continue;
+        lpFind->fd.dwFileAttributes &= ATTR_USED;
 
-      //
-      // Don't allow viewage of files > MAXPATHLEN
-      //
-      if (lstrlen(lpFind->fd.cFileName) > lpFind->nSpaceLeft) {
-
-         if (!lpFind->fd.cAlternateFileName[0] ||
-            lstrlen(lpFind->fd.cAlternateFileName) > lpFind->nSpaceLeft) {
-
+        //
+        // only pick files that fit attr filter
+        //
+        if ((lpFind->fd.dwFileAttributes & ~lpFind->dwAttrFilter) != 0)
             continue;
-         }
 
-         //
-         // Force longname to be same as shortname
-         //
-         lstrcpy(lpFind->fd.cFileName, lpFind->fd.cAlternateFileName);
-      }
+        //
+        // Don't allow viewage of files > MAXPATHLEN
+        //
+        if (lstrlen(lpFind->fd.cFileName) > lpFind->nSpaceLeft)
+        {
 
-	  Wow64RevertWow64FsRedirection(oldValue);
-      lpFind->err = 0;
-      return TRUE;
-   }
+            if (!lpFind->fd.cAlternateFileName[0] ||
+                lstrlen(lpFind->fd.cAlternateFileName) > lpFind->nSpaceLeft)
+            {
+                continue;
+            }
 
-   lpFind->err = GetLastError();
+            //
+            // Force longname to be same as shortname
+            //
+            lstrcpy(lpFind->fd.cFileName, lpFind->fd.cAlternateFileName);
+        }
 
-   Wow64RevertWow64FsRedirection(oldValue);
-   return(FALSE);
+        Wow64RevertWow64FsRedirection(oldValue);
+        lpFind->err = 0;
+        return TRUE;
+    }
+
+    lpFind->err = GetLastError();
+
+    Wow64RevertWow64FsRedirection(oldValue);
+    return(FALSE);
 }
 
 
@@ -155,8 +150,7 @@ WFFindNext(LPLFNDTA lpFind)
  *
  *  performs the find close operation
  */
-BOOL
-WFFindClose(LPLFNDTA lpFind)
+BOOL WFFindClose(LPLFNDTA lpFind)
 {
     BOOL bRet;
 
@@ -172,9 +166,8 @@ WFFindClose(LPLFNDTA lpFind)
 // A better solution is to put another flag in the error code "ret" in
 // WFMoveCopyDriver right after it calls GetNextPair.
 
-    if (lpFind->hFindFile == INVALID_HANDLE_VALUE) {
+    if (lpFind->hFindFile == INVALID_HANDLE_VALUE)
         return(FALSE);
-    }
 
     bRet = FindClose(lpFind->hFindFile);
 
@@ -191,18 +184,17 @@ WFFindClose(LPLFNDTA lpFind)
  *
  *  Determines if the specified path is a directory
  */
-BOOL
-WFIsDir(LPTSTR lpDir)
+BOOL WFIsDir(LPTSTR lpDir)
 {
-   DWORD attr = GetFileAttributes(lpDir);
+    DWORD attr = GetFileAttributes(lpDir);
 
-   if (attr == INVALID_FILE_ATTRIBUTES)
-      return FALSE;
+    if (attr == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
 
-   if (attr & ATTR_DIR)
-      return TRUE;
+    if (attr & ATTR_DIR)
+        return TRUE;
 
-   return FALSE;
+    return FALSE;
 }
 
 /* GetNameType -
@@ -212,107 +204,96 @@ WFIsDir(LPTSTR lpDir)
  *  NOTE: this should work on unqualified names.  currently this isn't
  *        very useful.
  */
-DWORD
-GetNameType(LPTSTR lpName)
+DWORD GetNameType(LPTSTR lpName)
 {
-   if (CHAR_COLON == *(lpName+1)) {
-      if (!IsLFNDrive(lpName))
-         return FILE_83_CI;
-   } else if(IsFATName(lpName))
-      return FILE_83_CI;
+    if (CHAR_COLON == *(lpName+1))
+    {
+        if (!IsLFNDrive(lpName))
+            return FILE_83_CI;
+    }
+    else if(IsFATName(lpName))
+        return FILE_83_CI;
 
-   return(FILE_LONG);
+    return(FILE_LONG);
 }
 
 #if 0
-BOOL
-IsLFNDrive(LPTSTR szDrive)
+BOOL IsLFNDrive(LPTSTR szDrive)
 {
-   DRIVE drive = DRIVEID(szDrive);
+    DRIVE drive = DRIVEID(szDrive);
 
-   if (CHAR_COLON == szDrive[1]) {
+    if (CHAR_COLON == szDrive[1])
+    {
+        U_VolInfo(drive);
 
-      U_VolInfo(drive);
-
-      if (GETRETVAL(VolInfo,drive))
-         return FALSE;
-
-      return aDriveInfo[drive].dwMaximumComponentLength == MAXDOSFILENAMELEN-1 ?
-         FALSE :
-         TRUE;
-
-   } else {
-
-      DWORD dwVolumeSerialNumber;
-      DWORD dwMaximumComponentLength;
-      DWORD dwFileSystemFlags;
-
-      INT i;
-      LPTSTR p;
-
-      WCHAR szRootPath[MAXPATHLEN];
-
-      if (ISUNCPATH(szDrive)) {
-
-         lstrcpy(szRootPath, szDrive);
-
-         //
-         // Stop at "\\foo\bar"
-         //
-         for (i=0, p=szRootPath+2; *p && i<2; p++) {
-
-            if (CHAR_BACKSLASH == *p)
-               i++;
-         }
-
-         switch (i) {
-         case 0:
-
+        if (GETRETVAL(VolInfo,drive))
             return FALSE;
 
-         case 1:
+        return aDriveInfo[drive].dwMaximumComponentLength == MAXDOSFILENAMELEN-1 ? FALSE : TRUE;
+    }
+    else
+    {
+        DWORD dwVolumeSerialNumber;
+        DWORD dwMaximumComponentLength;
+        DWORD dwFileSystemFlags;
 
-            if (lstrlen(szRootPath) < MAXPATHLEN-2) {
+        INT i;
+        LPTSTR p;
 
-               *p = CHAR_BACKSLASH;
-               *(p+1) = CHAR_NULL;
+        WCHAR szRootPath[MAXPATHLEN];
 
-            } else {
+        if (ISUNCPATH(szDrive))
+        {
+            lstrcpy(szRootPath, szDrive);
 
-               return FALSE;
+            //
+            // Stop at "\\foo\bar"
+            //
+            for (i=0, p=szRootPath+2; *p && i<2; p++)
+            {
+                if (CHAR_BACKSLASH == *p)
+                    i++;
             }
-            break;
 
-         case 2:
+            switch (i)
+            {
+                case 0:
+                    return FALSE;
+                case 1:
+                {
+                    if (lstrlen(szRootPath) < MAXPATHLEN-2)
+                    {
+                        *p = CHAR_BACKSLASH;
+                        *(p+1) = CHAR_NULL;
+                    }
+                    else
+                        return FALSE;
 
-            *p = CHAR_NULL;
-            break;
-         }
-      }
+                    break;
+                }
+                case 2:
+                {
+                    *p = CHAR_NULL;
+                    break;
+                }
+            }
+        }
 
-      if (GetVolumeInformation( szRootPath,
-                                NULL,
-                                0,
-                                &dwVolumeSerialNumber,
-                                &dwMaximumComponentLength,
-                                &dwFileSystemFlags,
-                                NULL,
-                                0 ))
-      {
-         if (dwMaximumComponentLength == MAXDOSFILENAMELEN - 1)
-            return FALSE;
-         else
-            return TRUE;
-      }
-      return FALSE;
-   }
+        if (GetVolumeInformation(szRootPath, NULL, 0, &dwVolumeSerialNumber, &dwMaximumComponentLength,
+                                &dwFileSystemFlags, NULL, 0))
+        {
+            if (dwMaximumComponentLength == MAXDOSFILENAMELEN - 1)
+                return FALSE;
+            else
+                return TRUE;
+        }
+
+        return FALSE;
+    }
 }
 #endif
 
-BOOL
-IsFATName(
-   IN  LPTSTR FileName
-)
+BOOL IsFATName(IN LPTSTR FileName)
 /*++
 
 Routine Description:
@@ -331,78 +312,73 @@ Return Value:
 
 --*/
 {
-   ULONG   i, n, name_length, ext_length;
-   BOOLEAN dot_yet;
-   PTUCHAR p;
+    ULONG   i, n, name_length, ext_length;
+    BOOLEAN dot_yet;
+    PTUCHAR p;
 
-   n = lstrlen(FileName);
-   p = (PTUCHAR) FileName;
-   name_length = n;
-   ext_length = 0;
+    n = lstrlen(FileName);
+    p = (PTUCHAR) FileName;
+    name_length = n;
+    ext_length = 0;
 
-   if (n > 12) {
-      return FALSE;
-   }
+    if (n > 12)
+        return FALSE;
 
-   dot_yet = FALSE;
-   for (i = 0; i < n; i++) {
-
-      if (p[i] < 32) {
-         return FALSE;
-      }
-
-      switch (p[i]) {
-      case CHAR_STAR:
-      case CHAR_QUESTION:
-      case CHAR_SLASH:
-      case CHAR_BACKSLASH:
-      case CHAR_PIPE:
-      case CHAR_COMMA:
-      case CHAR_SEMICOLON:
-      case CHAR_COLON:
-      case CHAR_PLUS:
-      case CHAR_EQUAL:
-      case CHAR_LESS:
-      case CHAR_GREATER:
-      case CHAR_OPENBRACK:
-      case CHAR_CLOSEBRACK:
-      case CHAR_DQUOTE:
-         return FALSE;
-
-      case CHAR_DOT:
-         if (dot_yet) {
+    dot_yet = FALSE;
+    for (i = 0; i < n; i++)
+    {
+        if (p[i] < 32)
             return FALSE;
-         }
 
-         dot_yet = TRUE;
-         name_length = i;
-         ext_length = n - i - 1;
-         break;
-      }
-   }
+        switch (p[i])
+        {
+            case CHAR_STAR:
+            case CHAR_QUESTION:
+            case CHAR_SLASH:
+            case CHAR_BACKSLASH:
+            case CHAR_PIPE:
+            case CHAR_COMMA:
+            case CHAR_SEMICOLON:
+            case CHAR_COLON:
+            case CHAR_PLUS:
+            case CHAR_EQUAL:
+            case CHAR_LESS:
+            case CHAR_GREATER:
+            case CHAR_OPENBRACK:
+            case CHAR_CLOSEBRACK:
+            case CHAR_DQUOTE:
+                return FALSE;
 
-   if (!name_length) {
-      return dot_yet && n == 1;
-   }
+            case CHAR_DOT:
+            {
+                if (dot_yet)
+                    return FALSE;
 
-   if (name_length > 8 || p[name_length - 1] == CHAR_SPACE) {
-      return FALSE;
-   }
+                dot_yet = TRUE;
+                name_length = i;
+                ext_length = n - i - 1;
+                break;
+            }
+        }
+    }
 
-   if (!ext_length) {
-      return !dot_yet;
-   }
+    if (!name_length)
+        return dot_yet && n == 1;
 
-   if (ext_length > 3 || p[name_length + 1 + ext_length - 1] == CHAR_SPACE) {
-      return FALSE;
-   }
+    if (name_length > 8 || p[name_length - 1] == CHAR_SPACE)
+        return FALSE;
+
+    if (!ext_length)
+        return !dot_yet;
+
+    if (ext_length > 3 || p[name_length + 1 + ext_length - 1] == CHAR_SPACE)
+        return FALSE;
 
    return TRUE;
 }
 
 
-BOOL
-IsLFN(LPTSTR pName)
+BOOL IsLFN(LPTSTR pName)
 {
     return !IsFATName(pName);
 }
@@ -425,45 +401,45 @@ IsLFN(LPTSTR pName)
 BOOL
 LFNMergePath(LPTSTR lpMask, LPTSTR lpFile)
 {
-   WCHAR szT[MAXPATHLEN*2];
-   INT iResStrlen;
+    WCHAR szT[MAXPATHLEN*2];
+    INT iResStrlen;
 
-   //
-   // Get the directory portion (from root to parent) of the destination.
-   // (  a:\joe\martha\wilcox.*  ->  a:\joe\martha\ )
-   //
-   lstrcpy( szT, lpMask );
-   RemoveLast( szT );
+    //
+    // Get the directory portion (from root to parent) of the destination.
+    // (  a:\joe\martha\wilcox.*  ->  a:\joe\martha\ )
+    //
+    lstrcpy( szT, lpMask );
+    RemoveLast( szT );
 
-   //
-   // Add a blackslash if there isn't one already.
-   //
-   AddBackslash(szT);
+    //
+    // Add a blackslash if there isn't one already.
+    //
+    AddBackslash(szT);
 
-   // hack fix: Normally, I_LFNEditName will return a:\xxxx\\. when lpFile
-   // is "\\" (C-style string, so the first \ is an escape char).
-   // Only do the file masking if lpFile is NOT the root directory.
-   // If it is, the return value is a:\xxxx\ which is what is expected
-   // when a root is merged.
+    // hack fix: Normally, I_LFNEditName will return a:\xxxx\\. when lpFile
+    // is "\\" (C-style string, so the first \ is an escape char).
+    // Only do the file masking if lpFile is NOT the root directory.
+    // If it is, the return value is a:\xxxx\ which is what is expected
+    // when a root is merged.
 
-   if (!( CHAR_BACKSLASH == lpFile[0] && CHAR_NULL == lpFile[1] )) {
+    if (!( CHAR_BACKSLASH == lpFile[0] && CHAR_NULL == lpFile[1] ))
+    {
+        iResStrlen = lstrlen( szT );
 
-      iResStrlen = lstrlen( szT );
-
-      I_LFNEditName(lpFile,                  // jack.bat
-         FindFileName( lpMask ),             // *.*
-         szT + iResStrlen,                   // right after "a:\more\beer\"
-         COUNTOF(szT) - iResStrlen);
+        I_LFNEditName(lpFile,                  // jack.bat
+            FindFileName( lpMask ),             // *.*
+            szT + iResStrlen,                   // right after "a:\more\beer\"
+            COUNTOF(szT) - iResStrlen);
 
       // If there is a trailing '.', always but always kill it.
 
-      iResStrlen = lstrlen( szT );
-      if ((iResStrlen != 0) && CHAR_DOT == szT[iResStrlen - 1])
-         szT[ iResStrlen-1 ] = CHAR_NULL;
-   }
+        iResStrlen = lstrlen( szT );
+        if ((iResStrlen != 0) && CHAR_DOT == szT[iResStrlen - 1])
+            szT[ iResStrlen-1 ] = CHAR_NULL;
+    }
 
-   lstrcpy(lpMask, szT);
-   return TRUE;
+    lstrcpy(lpMask, szT);
+    return TRUE;
 }
 
 /* WFCopy
@@ -516,13 +492,13 @@ WFCopy(LPTSTR pszFrom, LPTSTR pszTo)
 DWORD
 WFRemove(LPTSTR pszFile)
 {
-   DWORD dwRet;
+    DWORD dwRet;
 
-   dwRet = FileRemove(pszFile);
-   if (!dwRet)
-      ChangeFileSystem(FSC_DELETE,pszFile,NULL);
+    dwRet = FileRemove(pszFile);
+    if (!dwRet)
+        ChangeFileSystem(FSC_DELETE,pszFile,NULL);
 
-   return dwRet;
+    return dwRet;
 }
 
 /* WFMove
@@ -532,15 +508,13 @@ WFRemove(LPTSTR pszFile)
 DWORD
 WFMove(LPTSTR pszFrom, LPTSTR pszTo, PBOOL pbErrorOnDest, BOOL bSilent)
 {
-   DWORD dwRet;
+    DWORD dwRet;
 
-   *pbErrorOnDest = FALSE;
-   dwRet = FileMove(pszFrom,pszTo, pbErrorOnDest, bSilent);
+    *pbErrorOnDest = FALSE;
+    dwRet = FileMove(pszFrom,pszTo, pbErrorOnDest, bSilent);
 
-   if (!dwRet)
-      ChangeFileSystem(FSC_RENAME,pszFrom,pszTo);
+    if (!dwRet)
+        ChangeFileSystem(FSC_RENAME,pszFrom,pszTo);
 
-   return dwRet;
+    return dwRet;
 }
-
-

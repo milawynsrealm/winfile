@@ -41,9 +41,7 @@ VOID InitLangList(HWND hCBox)
 
         //Select entry if its the currently active language
         if (lcidTemp == lcid)
-        {
             SendMessage(hCBox, CB_SETCURSEL, i, 0);
-        }
     }
 }
 
@@ -63,12 +61,12 @@ BOOL DefaultLayoutRTL()
 {
     switch (PRIMARYLANGID(LANGIDFROMLCID(lcid)))
     {
-    /* Additional Languages can be added */
-    case LANG_ARABIC:
-    case LANG_HEBREW:
-        return TRUE;
-    default:
-        return FALSE;
+        /* Additional Languages can be added */
+        case LANG_ARABIC:
+        case LANG_HEBREW:
+            return TRUE;
+        default:
+            return FALSE;
     }
 }
 
@@ -85,9 +83,7 @@ DWORD MainWindowExStyle()
             exStyle |= WS_EX_NOINHERITLAYOUT;
     }
     else
-    {
         exStyle = bMirrorContent ? WS_EX_LAYOUTRTL : 0;
-    }
 
     return exStyle;
 }

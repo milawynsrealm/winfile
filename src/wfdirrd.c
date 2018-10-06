@@ -14,22 +14,22 @@
 #include "wfcopy.h"
 
 typedef enum {
-   EDIRABORT_NULL        = 0,
-   EDIRABORT_READREQUEST = 1,
-   EDIRABORT_WINDOWCLOSE = 2,
+    EDIRABORT_NULL        = 0,
+    EDIRABORT_READREQUEST = 1,
+    EDIRABORT_WINDOWCLOSE = 2,
 } EDIRABORT;
 
 typedef struct _EXT_LOCATION {
-   HKEY hk;
-   LPTSTR lpszNode;
+    HKEY hk;
+    LPTSTR lpszNode;
 } EXTLOCATION, *PEXTLOCATION;
 
 EXTLOCATION aExtLocation[] = {
-   { HKEY_CLASSES_ROOT, L"" },
+    { HKEY_CLASSES_ROOT, L"" },
 #ifdef ASSOC
-   { HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Extensions" },
+    { HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Extensions" },
 #endif
-   { (HKEY)0, NULL }
+    { (HKEY)0, NULL }
 };
 
 
@@ -53,60 +53,57 @@ VOID DirReadAbort(HWND hwnd, LPXDTALINK lpStart, EDIRABORT eDirAbort);
 DWORD DecodeReparsePoint(LPCWSTR szMyFile, LPCWSTR szChild, LPWSTR szDest, DWORD cwcDest);
 LONG WFRegGetValueW(HKEY hkey, LPCWSTR lpSubKey, LPCWSTR lpValue, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData);
 
-BOOL
-InitDirRead(VOID)
+BOOL InitDirRead(VOID)
 {
-   DWORD dwIgnore;
+    DWORD dwIgnore;
 
-   bDirReadRun = TRUE;
-   InitializeCriticalSection(&CriticalSectionDirRead);
+    bDirReadRun = TRUE;
+    InitializeCriticalSection(&CriticalSectionDirRead);
 
-   hEventDirRead = CreateEvent(NULL, FALSE, FALSE, NULL);
+    hEventDirRead = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-   if (!hEventDirRead) {
-
+    if (!hEventDirRead)
+    {
 Error:
+        bDirReadRun = FALSE;
+        DeleteCriticalSection(&CriticalSectionDirRead);
 
-      bDirReadRun = FALSE;
-      DeleteCriticalSection(&CriticalSectionDirRead);
-
-      return FALSE;
-   }
+        return FALSE;
+    }
 
 
-   hThreadDirRead = CreateThread(NULL,
-                                 0L,
-                                 DirReadServer,
-                                 NULL,
-                                 0L,
-                                 &dwIgnore);
+    hThreadDirRead = CreateThread(NULL,
+                                  0L,
+                                  DirReadServer,
+                                  NULL,
+                                  0L,
+                                  &dwIgnore);
 
-   if (!hThreadDirRead) {
+    if (!hThreadDirRead)
+    {
+        CloseHandle(hEventDirRead);
+        goto Error;
+    }
 
-      CloseHandle(hEventDirRead);
-      goto Error;
-   }
-
-   return TRUE;
+    return TRUE;
 }
-
 
 VOID
 DestroyDirRead(VOID)
 {
-   if (bDirReadRun) {
+    if (bDirReadRun)
+    {
 
-      bDirReadRun = FALSE;
+        bDirReadRun = FALSE;
 
-      SetEvent(hEventDirRead);
-      WaitForSingleObject(hThreadDirRead, INFINITE);
+        SetEvent(hEventDirRead);
+        WaitForSingleObject(hThreadDirRead, INFINITE);
 
-      CloseHandle(hEventDirRead);
-      CloseHandle(hThreadDirRead);
-      DeleteCriticalSection(&CriticalSectionDirRead);
-   }
+        CloseHandle(hEventDirRead);
+        CloseHandle(hThreadDirRead);
+        DeleteCriticalSection(&CriticalSectionDirRead);
+    }
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -140,74 +137,56 @@ DestroyDirRead(VOID)
 //           Called from Main thread.
 //
 /////////////////////////////////////////////////////////////////////
-
-LPXDTALINK
-CreateDTABlock(
-   HWND hwnd,
-   LPWSTR pPath,
-   DWORD dwAttribs,
-   BOOL bDontSteal)
+LPXDTALINK CreateDTABlock(HWND hwnd, LPWSTR pPath, DWORD dwAttribs, BOOL bDontSteal)
 {
-   LPXDTALINK lpStart;
-   MSG msg;
+    LPXDTALINK lpStart;
+    MSG msg;
 
-   SetWindowLongPtr(hwnd, GWL_IERROR, ERROR_SUCCESS);
+    SetWindowLongPtr(hwnd, GWL_IERROR, ERROR_SUCCESS);
 
-   if (!bDontSteal && (lpStart = StealDTABlock(hwnd, pPath, dwAttribs))) {
+    if (!bDontSteal && (lpStart = StealDTABlock(hwnd, pPath, dwAttribs)))
+    {
+        if (PeekMessage(&msg, NULL, WM_KEYDOWN, WM_KEYDOWN, PM_NOREMOVE) == TRUE)
+        {
+            if (msg.wParam == VK_UP || msg.wParam == VK_DOWN)
+            {
+                MemDelete(lpStart);
+                goto Abort;
+            }
+        }
 
-      if (PeekMessage(&msg,
-                      NULL,
-                      WM_KEYDOWN,
-                      WM_KEYDOWN,
-                      PM_NOREMOVE)) {
+        //
+        // Abort the dir read, since we have stolen the correct thing.
+        // (bAbort must be true to abort us, but the following call sets
+        // lpStart to non-null, which prevents re-reading).
+        //
+        DirReadAbort(hwnd, lpStart, EDIRABORT_NULL);
 
-         if (msg.wParam == VK_UP || msg.wParam == VK_DOWN) {
-
-            MemDelete(lpStart);
-            goto Abort;
-         }
-      }
-
-      //
-      // Abort the dir read, since we have stolen the correct thing.
-      // (bAbort must be true to abort us, but the following call sets
-      // lpStart to non-null, which prevents re-reading).
-      //
-      DirReadAbort(hwnd, lpStart, EDIRABORT_NULL);
-
-      return lpStart;
-   }
+        return lpStart;
+    }
 
 Abort:
-
-   DirReadAbort(hwnd, NULL, EDIRABORT_READREQUEST);
-   return NULL;
+    DirReadAbort(hwnd, NULL, EDIRABORT_READREQUEST);
+    return NULL;
 }
 
-
-VOID
-DirReadAbort(
-   HWND hwnd,
-   LPXDTALINK lpStart,
-   EDIRABORT eDirAbort)
+VOID DirReadAbort(HWND hwnd, LPXDTALINK lpStart, EDIRABORT eDirAbort)
 {
-   //
-   // This is the only code that issues the abort!
-   //
-   EnterCriticalSection(&CriticalSectionDirRead);
+    //
+    // This is the only code that issues the abort!
+    //
+    EnterCriticalSection(&CriticalSectionDirRead);
 
-   FreeDTA(hwnd);
+    FreeDTA(hwnd);
 
-   SetWindowLongPtr(hwnd, GWL_HDTA, (LPARAM)lpStart);
-   SetWindowLongPtr(hwnd, GWL_HDTAABORT, eDirAbort);
-   bDirReadAbort = TRUE;
+    SetWindowLongPtr(hwnd, GWL_HDTA, (LPARAM)lpStart);
+    SetWindowLongPtr(hwnd, GWL_HDTAABORT, eDirAbort);
+    bDirReadAbort = TRUE;
 
-   SetEvent(hEventDirRead);
+    SetEvent(hEventDirRead);
 
-   LeaveCriticalSection(&CriticalSectionDirRead);
+    LeaveCriticalSection(&CriticalSectionDirRead);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -231,46 +210,37 @@ DirReadAbort(
 // Notes:    Called from Main thread.
 //
 /////////////////////////////////////////////////////////////////////
-
-LPXDTALINK
-StealDTABlock(
-   HWND hwndCur,
-   LPWSTR pPath,
-   DWORD dwAttribs)
+LPXDTALINK StealDTABlock(HWND hwndCur, LPWSTR pPath, DWORD dwAttribs)
 {
-   HWND hwndDir;
-   HWND hwnd;
-   WCHAR szPath[MAXPATHLEN];
+    HWND hwndDir;
+    HWND hwnd;
+    WCHAR szPath[MAXPATHLEN];
 
-   LPXDTALINK lpStart, lpStartCopy;
-   INT iError;
+    LPXDTALINK lpStart, lpStartCopy;
+    INT iError;
 
-   for (hwnd = GetWindow(hwndMDIClient, GW_CHILD);
-      hwnd;
-      hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
+    for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+    {
+        if ((hwndDir = HasDirWindow(hwnd)) && (hwndDir != hwndCur))
+        {
+            GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
 
-      if ((hwndDir = HasDirWindow(hwnd)) && (hwndDir != hwndCur)) {
-
-         GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
-
-         if ((dwAttribs == (DWORD)GetWindowLongPtr(hwnd, GWL_ATTRIBS)) &&
-            !lstrcmpi(pPath, szPath) &&
-            (lpStart = (LPXDTALINK)GetWindowLongPtr(hwndDir, GWL_HDTA))) {
-
-            iError = (INT)GetWindowLongPtr(hwndDir, GWL_IERROR);
-            if (!iError || IDS_NOFILES == iError) {
-
-               lpStartCopy = MemClone(lpStart);
-
-               return lpStartCopy;
+            if ((dwAttribs == (DWORD)GetWindowLongPtr(hwnd, GWL_ATTRIBS)) &&
+                !lstrcmpi(pPath, szPath) &&
+                (lpStart = (LPXDTALINK)GetWindowLongPtr(hwndDir, GWL_HDTA)))
+            {
+                iError = (INT)GetWindowLongPtr(hwndDir, GWL_IERROR);
+                if (!iError || IDS_NOFILES == iError)
+                {
+                    lpStartCopy = MemClone(lpStart);
+                    return lpStartCopy;
+                }
             }
-         }
-      }
-   }
+        }
+    }
 
-   return NULL;
+    return NULL;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -292,41 +262,30 @@ StealDTABlock(
 //           SendMessage to Main UI Thread.  (Search windows ok)
 //
 /////////////////////////////////////////////////////////////////////
-
-
-VOID
-FreeDTA(HWND hwnd)
+VOID FreeDTA(HWND hwnd)
 {
-   register LPXDTALINK lpxdtaLink;
+    register LPXDTALINK lpxdtaLink;
 
-   lpxdtaLink = (LPXDTALINK)GetWindowLongPtr(hwnd, GWL_HDTA);
+    lpxdtaLink = (LPXDTALINK)GetWindowLongPtr(hwnd, GWL_HDTA);
 
-   SetWindowLongPtr(hwnd, GWL_HDTA, 0L);
+    SetWindowLongPtr(hwnd, GWL_HDTA, 0L);
 
-   //
-   // Only delete it if it's not in use.
-   //
-   if (lpxdtaLink) {
-
-       if (MemLinkToHead(lpxdtaLink)->fdwStatus & LPXDTA_STATUS_READING) {
-
-           MemLinkToHead(lpxdtaLink)->fdwStatus |= LPXDTA_STATUS_CLOSE;
-
-       } else {
-
-           MemDelete(lpxdtaLink);
-       }
-   }
+    //
+    // Only delete it if it's not in use.
+    //
+    if (lpxdtaLink)
+    {
+        if (MemLinkToHead(lpxdtaLink)->fdwStatus & LPXDTA_STATUS_READING)
+            MemLinkToHead(lpxdtaLink)->fdwStatus |= LPXDTA_STATUS_CLOSE;
+        else
+            MemDelete(lpxdtaLink);
+    }
 }
 
-
-VOID
-DirReadDestroyWindow(HWND hwndDir)
+VOID DirReadDestroyWindow(HWND hwndDir)
 {
-   DirReadAbort(hwndDir, NULL, EDIRABORT_WINDOWCLOSE);
+    DirReadAbort(hwndDir, NULL, EDIRABORT_WINDOWCLOSE);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -344,77 +303,67 @@ DirReadDestroyWindow(HWND hwndDir)
 // Notes:    Main Thread ONLY!
 //
 /////////////////////////////////////////////////////////////////////
-
-LPXDTALINK
-DirReadDone(
-   HWND hwndDir,
-   LPXDTALINK lpStart,
-   INT iError)
+LPXDTALINK DirReadDone(HWND hwndDir, LPXDTALINK lpStart, INT iError)
 {
-   HWND hwndLB = GetDlgItem(hwndDir, IDCW_LISTBOX);
-   HWND hwndParent = GetParent(hwndDir);
-   WCHAR szPath[MAXPATHLEN];
-   HWND hwndNext;
+    HWND hwndLB = GetDlgItem(hwndDir, IDCW_LISTBOX);
+    HWND hwndParent = GetParent(hwndDir);
+    WCHAR szPath[MAXPATHLEN];
+    HWND hwndNext;
 
+    EDIRABORT eDirAbort;
 
-   EDIRABORT eDirAbort;
+    eDirAbort = (EDIRABORT)GetWindowLongPtr(hwndDir, GWL_HDTAABORT);
 
-   eDirAbort = (EDIRABORT)GetWindowLongPtr(hwndDir, GWL_HDTAABORT);
+    //
+    // Last chance check for abort
+    //
+    if ((eDirAbort & (EDIRABORT_READREQUEST|EDIRABORT_WINDOWCLOSE)) ||
+        GetWindowLongPtr(hwndDir, GWL_HDTA))
+    {
+        //
+        // We don't want it
+        //
+        return NULL;
+    }
 
-   //
-   // Last chance check for abort
-   //
-   if ((eDirAbort & (EDIRABORT_READREQUEST|EDIRABORT_WINDOWCLOSE)) ||
-      GetWindowLongPtr(hwndDir, GWL_HDTA)) {
+    GetMDIWindowText(hwndParent, szPath, COUNTOF(szPath));
+    StripFilespec(szPath);
 
-      //
-      // We don't want it
-      //
-      return NULL;
-   }
+    ModifyWatchList(hwndParent,
+                    szPath,
+                    FILE_NOTIFY_CHANGE_FLAGS);
 
-   GetMDIWindowText(hwndParent, szPath, COUNTOF(szPath));
-   StripFilespec(szPath);
+    SetWindowLongPtr(hwndDir, GWL_IERROR, iError);
+    SetWindowLongPtr(hwndDir, GWL_HDTA, (LPARAM)lpStart);
 
-   ModifyWatchList(hwndParent,
-                   szPath,
-                   FILE_NOTIFY_CHANGE_FLAGS);
+    //
+    // Remove the "reading" token
+    //
+    SendMessage(hwndLB, LB_DELETESTRING, 0, 0);
 
-   SetWindowLongPtr(hwndDir, GWL_IERROR, iError);
-   SetWindowLongPtr(hwndDir, GWL_HDTA, (LPARAM)lpStart);
+    FillDirList(hwndDir, lpStart);
 
-   //
-   // Remove the "reading" token
-   //
-   SendMessage(hwndLB, LB_DELETESTRING, 0, 0);
+    SetWindowLongPtr(hwndDir, GWLP_USERDATA, 0);
 
-   FillDirList(hwndDir, lpStart);
+    hwndNext = (HWND)GetWindowLongPtr(hwndDir, GWL_NEXTHWND);
+    if (hwndNext)
+        SendMessage(hwndDir, FS_TESTEMPTY, 0L, (LPARAM)hwndNext);
 
-   SetWindowLongPtr(hwndDir, GWLP_USERDATA, 0);
+    SetWindowLongPtr(hwndDir, GWL_NEXTHWND, 0L);
 
-   hwndNext = (HWND)GetWindowLongPtr(hwndDir, GWL_NEXTHWND);
-   if (hwndNext)
-   {
-       SendMessage(hwndDir, FS_TESTEMPTY, 0L, (LPARAM)hwndNext);
-   }
-   SetWindowLongPtr(hwndDir, GWL_NEXTHWND, 0L);
+    //
+    // Refresh display, but don't hit disk
+    //
+    SPC_SET_INVALID(qFreeSpace);
 
-   //
-   // Refresh display, but don't hit disk
-   //
-   SPC_SET_INVALID(qFreeSpace);
-
-   return lpStart;
+    return lpStart;
 }
 
-
-VOID
-BuildDocumentString()
+VOID BuildDocumentString()
 {
-   bDirReadRebuildDocString = TRUE;
-   SetEvent(hEventDirRead);
+    bDirReadRebuildDocString = TRUE;
+    SetEvent(hEventDirRead);
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -433,30 +382,28 @@ BuildDocumentString()
 // Notes:    Runs in main thread, but sync'd with worker via SendMessage.
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-BuildDocumentStringWorker()
+VOID BuildDocumentStringWorker()
 {
-   register LPTSTR   p;
-   register INT      uLen;
-   WCHAR             szT[EXTSIZ + 1];
-   INT               i,j;
-   LPTSTR            pszDocuments = NULL;
-   HKEY hk;
-   BOOL bCloseKey;
+    register LPTSTR   p;
+    register INT      uLen;
+    WCHAR             szT[EXTSIZ + 1];
+    INT               i,j;
+    LPWSTR            pszDocuments = NULL;
+    HKEY hk;
+    BOOL bCloseKey;
 
-   DWORD dwStatus;
+    DWORD dwStatus;
 
-   //
-   // Reinitialize the ppDocBucket struct
-   //
-   DocDestruct(ppDocBucket);
-   ppDocBucket = DocConstruct();
+    //
+    // Reinitialize the ppDocBucket struct
+    //
+    DocDestruct(ppDocBucket);
+    ppDocBucket = DocConstruct();
 
-   if (!ppDocBucket)
-      goto Return;
+    if (!ppDocBucket)
+        return;
 
-   FillDocType(ppDocBucket, L"Documents", szNULL);
+    FillDocType(ppDocBucket, L"Documents", szNULL);
 
 #ifdef NEC_98
     uLen = 96;      // 96 = 128 - 32.  Trying to match code added to wfinit.c
@@ -465,109 +412,104 @@ BuildDocumentStringWorker()
     uLen = 0;
 #endif
 
-   do {
+    do
+    {
+        uLen += 32;
 
-      uLen += 32;
+        if (pszDocuments)
+            LocalFree((HLOCAL) pszDocuments);
 
-      if (pszDocuments)
-         LocalFree((HLOCAL) pszDocuments);
+        pszDocuments = LocalAlloc(LMEM_FIXED, uLen*sizeof(*pszDocuments));
 
-      pszDocuments = LocalAlloc(LMEM_FIXED, uLen*sizeof(*pszDocuments));
+        if (!pszDocuments)
+            return;
 
-      if (!pszDocuments) {
-         goto Return;
-      }
+    }
+    while (GetProfileString(szExtensions, NULL, szNULL, pszDocuments, uLen) == (DWORD)uLen - 2);
 
-   } while (GetProfileString(szExtensions,
-                             NULL,
-                             szNULL,
-                             pszDocuments,
-                             uLen) == (DWORD)uLen-2);
+    //
+    // Step through each of the keywords in 'szDocuments' changing NULLS into
+    // spaces until a double-NULL is found.
+    //
+    p = pszDocuments;
+    while (*p)
+    {
+        DocInsert(ppDocBucket, p, 0);
 
-   //
-   // Step through each of the keywords in 'szDocuments' changing NULLS into
-   // spaces until a double-NULL is found.
-   //
-   p = pszDocuments;
-   while (*p) {
+        //
+        // Find the next NULL.
+        //
+        while (*p)
+            p++;
 
-      DocInsert(ppDocBucket, p, 0);
+        p++;
+    }
 
-      //
-      // Find the next NULL.
-      //
-      while (*p)
-         p++;
+    LocalFree((HLOCAL)pszDocuments);
 
-      p++;
-   }
+    for(j=0; aExtLocation[j].lpszNode; j++)
+    {
+        if (aExtLocation[j].lpszNode[0])
+        {
+            if (RegOpenKey(aExtLocation[j].hk,aExtLocation[j].lpszNode,&hk))
+                continue;
 
-   LocalFree((HLOCAL)pszDocuments);
+            bCloseKey = TRUE;
 
-   for(j=0; aExtLocation[j].lpszNode; j++) {
+        }
+        else
+        {
+            hk = aExtLocation[j].hk;
+            bCloseKey = FALSE;
+        }
 
-      if (aExtLocation[j].lpszNode[0]) {
+        //
+        // now enumerate the classes in the registration database and get all
+        // those that are of the form *.ext
+        //
+        for (i=0, dwStatus = 0L; ERROR_NO_MORE_ITEMS!=dwStatus; i++)
+        {
+            DWORD cbClass, cbIconFile;
+            WCHAR szClass[MAXPATHLEN];
+            WCHAR szIconFile[MAXPATHLEN];
 
-         if (RegOpenKey(aExtLocation[j].hk,aExtLocation[j].lpszNode,&hk)) {
-            continue;
-         }
-         bCloseKey = TRUE;
+            dwStatus = RegEnumKey(hk, (DWORD)i, szT, COUNTOF(szT));
 
-      } else {
-         hk = aExtLocation[j].hk;
-         bCloseKey = FALSE;
-      }
+            if (dwStatus || szT[0] != '.')
+            {
+                //
+                // either the class does not start with . or it has a greater
+                // than 3 byte extension... skip it.
+                //
+                continue;
+            }
 
-      //
-      // now enumerate the classes in the registration database and get all
-      // those that are of the form *.ext
-      //
-      for (i=0, dwStatus = 0L; ERROR_NO_MORE_ITEMS!=dwStatus; i++) {
-		 DWORD cbClass, cbIconFile;
-		 WCHAR szClass[MAXPATHLEN];
-		 WCHAR szIconFile[MAXPATHLEN];
+            cbClass = sizeof(szClass);
+            cbIconFile = 0;
+            if (WFRegGetValueW(hk, szT, NULL, NULL, szClass, &cbClass) == ERROR_SUCCESS)
+            {
+                DWORD cbClass2;
+                WCHAR szClass2[MAXPATHLEN];
 
-         dwStatus = RegEnumKey(hk, (DWORD)i, szT, COUNTOF(szT));
+                cbClass2 = sizeof(szClass2);
+                lstrcat(szClass, L"\\CurVer");
+                if (WFRegGetValueW(hk, szClass, NULL, NULL, szClass2, &cbClass2) == ERROR_SUCCESS)
+                    lstrcpy(szClass, szClass2);
+                else
+                    szClass[lstrlen(szClass)-7] = '\0';
 
-         if (dwStatus || szT[0] != '.') {
+                cbIconFile = sizeof(szIconFile);
+                lstrcat(szClass, L"\\DefaultIcon");
+                if (WFRegGetValueW(hk, szClass, NULL, NULL, szIconFile, &cbIconFile) != ERROR_SUCCESS)
+                    cbIconFile = 0;
+            }
 
-            //
-            // either the class does not start with . or it has a greater
-            // than 3 byte extension... skip it.
-            //
-            continue;
-         }
+            DocInsert(ppDocBucket, szT+1, cbIconFile != 0 ? szIconFile : NULL);
+        }
 
-		 cbClass = sizeof(szClass);
-		 cbIconFile = 0;
-		 if (WFRegGetValueW(hk, szT, NULL, NULL, szClass, &cbClass) == ERROR_SUCCESS)
-		 {
-		    DWORD cbClass2;
-			WCHAR szClass2[MAXPATHLEN];
-
-			cbClass2 = sizeof(szClass2);
-			lstrcat(szClass, L"\\CurVer");
-			if (WFRegGetValueW(hk, szClass, NULL, NULL, szClass2, &cbClass2) == ERROR_SUCCESS)
-				lstrcpy(szClass, szClass2);
-			else
-				szClass[lstrlen(szClass)-7] = '\0';
-
-			cbIconFile = sizeof(szIconFile);
-			lstrcat(szClass, L"\\DefaultIcon");
-			if (WFRegGetValueW(hk, szClass, NULL, NULL, szIconFile, &cbIconFile) != ERROR_SUCCESS)
-				cbIconFile = 0;
-		 }
-
-		 DocInsert(ppDocBucket, szT+1, cbIconFile != 0 ? szIconFile : NULL);
-      }
-
-      if (bCloseKey)
-         RegCloseKey(hk);
-   }
-
-Return:
-
-   return;
+        if (bCloseKey)
+            RegCloseKey(hk);
+    }
 }
 
 /********************************************************************
@@ -575,536 +517,500 @@ Return:
    The following code will be run in a separate thread!
 
 ********************************************************************/
-
-
-DWORD
-WINAPI
-DirReadServer(
-   LPVOID lpvParm)
+DWORD WINAPI DirReadServer(LPVOID lpvParm)
 {
-   HWND hwnd;
-   HWND hwndDir;
-   BOOL bRead;
+    HWND hwnd;
+    HWND hwndDir;
+    BOOL bRead;
 
-   while (bDirReadRun) {
-
-      WaitForSingleObject(hEventDirRead, INFINITE);
+    while (bDirReadRun)
+    {
+        WaitForSingleObject(hEventDirRead, INFINITE);
 
 Restart:
-      //
-      // Delete all extra pibs
-      //
-      if (!bDirReadRun)
-         break;
+        //
+        // Delete all extra pibs
+        //
+        if (!bDirReadRun)
+            break;
 
-      if (bDirReadRebuildDocString) {
-         bDirReadRebuildDocString = FALSE;
-         SendMessage(hwndFrame, FS_REBUILDDOCSTRING, 0, 0L);
-      }
+        if (bDirReadRebuildDocString)
+        {
+            bDirReadRebuildDocString = FALSE;
+            SendMessage(hwndFrame, FS_REBUILDDOCSTRING, 0, 0L);
+        }
 
-      //
-      // bDirReadAbort means that we need to abort the current read
-      // and rescan from the beginning.  Since we are here right now, we can
-      // clear bDirReadAbort since we are about to rescan anyway.
-      //
-      bDirReadAbort = FALSE;
+        //
+        // bDirReadAbort means that we need to abort the current read
+        // and rescan from the beginning.  Since we are here right now, we can
+        // clear bDirReadAbort since we are about to rescan anyway.
+        //
+        bDirReadAbort = FALSE;
 
-      //
-      // Go through z order and update reads.
-      //
-      for (hwnd = GetWindow(hwndMDIClient, GW_CHILD);
-         hwnd;
-         hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
+        //
+        // Go through z order and update reads.
+        //
+        for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+        {
+            if (hwndDir = HasDirWindow(hwnd))
+            {
+                //
+                // Critical section since GWL_HDTA+HDTAABORT reads must
+                // be atomic.
+                //
+                EnterCriticalSection(&CriticalSectionDirRead);
 
-         if (hwndDir = HasDirWindow(hwnd)) {
+                bRead = !GetWindowLongPtr(hwndDir, GWL_HDTA) && 
+                    EDIRABORT_READREQUEST == (EDIRABORT)GetWindowLongPtr(hwndDir, GWL_HDTAABORT);
+
+                LeaveCriticalSection(&CriticalSectionDirRead);
+
+                if (bRead)
+                {
+                    CreateDTABlockWorker(hwnd, hwndDir);
+                    goto Restart;
+                }
+                SetWindowLongPtr(hwndDir, GWLP_USERDATA, 0);
+            }
+        }
+    }
+
+    return 0;
+}
+
+LPXDTALINK CreateDTABlockWorker(HWND hwnd, HWND hwndDir)
+{
+    register LPWSTR pName;
+    PDOCBUCKET pDoc, pProgram;
+
+    LFNDTA lfndta;
+
+    LPXDTALINK lpLinkLast;
+    LPXDTAHEAD lpHead;
+
+    LPXDTA lpxdta;
+
+    INT iBitmap;
+    DRIVE drive;
+
+    LPWSTR lpTemp;
+    HWND hwndTree;
+
+    BOOL bCasePreserved;
+    BOOL bAbort;
+
+    WCHAR szPath[MAXPATHLEN];
+    WCHAR szLinkDest[MAXPATHLEN];
+
+    DWORD dwAttribs;
+    LPXDTALINK lpStart;
+
+    INT iError = 0;
+
+    lpStart = MemNew();
+
+    if (!lpStart)
+        goto CDBMemoryErr;
+
+    //
+    // Checking abort and reading current dir must be atomic,
+    // since a directory change causes an abort.
+    //
+    EnterCriticalSection(&CriticalSectionDirRead);
+
+    GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
+    SetWindowLongPtr(hwndDir, GWL_HDTAABORT, EDIRABORT_NULL);
+
+    LeaveCriticalSection(&CriticalSectionDirRead);
+
+    dwAttribs = GetWindowLongPtr(hwnd, GWL_ATTRIBS);
+
+    //
+    // get the drive index assuming path is
+    // fully qualified...
+    //
+    drive = DRIVEID(szPath);
+    bCasePreserved = IsCasePreservedDrive(drive);
+
+    lpHead = MemLinkToHead(lpStart);
+    lpLinkLast = lpStart;
+
+    if (!WFFindFirst(&lfndta, szPath, dwAttribs & ATTR_ALL))
+    {
+        //
+        // Try again!  But first, see if the directory was invalid!
+        //
+        if (ERROR_PATH_NOT_FOUND == lfndta.err)
+        {
+            iError = IDS_BADPATHMSG;
+            goto InvalidDirectory;
+        }
+
+        if (!IsTheDiskReallyThere(hwndDir, szPath, FUNC_EXPAND, FALSE))
+        {
+            if (IsRemoteDrive(drive))
+                iError = IDS_DRIVENOTAVAILABLE;
+            goto CDBDiskGone;
+        }
+
+        //
+        // break out of this loop if we were returned something
+        // other than PATHNOTFOUND
+        //
+        if (!WFFindFirst(&lfndta, szPath, dwAttribs & ATTR_ALL))
+        {
+            switch (lfndta.err)
+            {
+                case ERROR_PATH_NOT_FOUND:
+                {
+InvalidDirectory:
+
+                    //
+                    // LATER: fix this so that it comes up only
+                    // when not switching x: from \\x\x to \\y\y
+                    //
+                    // If the path is not found, but the disk is there, then go to
+                    // the root and try again; if already at the root, then exit
+                    //
+                    if (!(lpTemp=StrRChr(szPath, NULL, CHAR_BACKSLASH)) ||
+                        (lpTemp - szPath <= 2))
+                    {
+                        goto CDBDiskGone;
+                    }
+
+                    if (hwndTree=HasTreeWindow(hwnd))
+                    {
+                        //
+                        // If we changed dirs, and there is a tree window, set the
+                        // dir to the root and collapse it
+                        // Note that lpTemp-szPath>2, szPath[3] is not in the file spec
+                        //
+                        szPath[3] = CHAR_NULL;
+                        SendMessage(hwndTree, TC_SETDIRECTORY, 0, (LPARAM)szPath);
+                        SendMessage(hwndTree, TC_COLLAPSELEVEL, 0, 0L);
+Fail:
+                        MemDelete(lpStart);
+                        return NULL;
+                    }
+
+                    lstrcpy(szPath+3, lpTemp+1);
+
+                    SendMessage(hwndDir, FS_CHANGEDISPLAY, CD_PATH | CD_ALLOWABORT, (LPARAM)szPath);
+
+                    goto Fail;
+                }
+
+                case ERROR_FILE_NOT_FOUND:
+                case ERROR_NO_MORE_FILES:
+                    break;
+
+                case ERROR_ACCESS_DENIED:
+                {
+                    DWORD tag = DecodeReparsePoint(szPath, NULL, szLinkDest, COUNTOF(szLinkDest));
+                    iError = IDS_NOACCESSDIR;
+
+                    if (tag != IO_REPARSE_TAG_RESERVED_ZERO && WFFindFirst(&lfndta, szLinkDest, ATTR_ALL))
+                    {
+                        // TODO: make add routine to share with below
+
+                        lpxdta = MemAdd(&lpLinkLast, lstrlen(szLinkDest), 0);
+
+                        if (!lpxdta)
+                            goto CDBMemoryErr;
+
+                        lpHead->dwEntries++;
+
+                        lpxdta->dwAttrs = ATTR_DIR | ATTR_REPARSE_POINT;
+                        lpxdta->ftLastWriteTime = lfndta.fd.ftLastWriteTime;
+
+                        //
+                        // files > 2^63 will come out negative, so tough.
+                        // (WIN32_FIND_DATA.nFileSizeHigh is not signed, but
+                        // LARGE_INTEGER is)
+                        //
+                        lpxdta->qFileSize.LowPart = lfndta.fd.nFileSizeLow;
+                        lpxdta->qFileSize.HighPart = lfndta.fd.nFileSizeHigh;
+
+                        lpxdta->byBitmap = BM_IND_CLOSE;
+                        lpxdta->pDocB = NULL;
+
+                        if (IsLFN(szLinkDest))
+                            lpxdta->dwAttrs |= ATTR_LFN;
+
+                        if (!bCasePreserved)
+                            lpxdta->dwAttrs |= ATTR_LOWERCASE;
+
+                        if (tag == IO_REPARSE_TAG_MOUNT_POINT)
+                            lpxdta->dwAttrs |= ATTR_JUNCTION;
+                        else if (tag == IO_REPARSE_TAG_SYMLINK)
+                            lpxdta->dwAttrs |= ATTR_SYMBOLIC;
+                        else
+                        {
+                            // DebugBreak();
+                        }
+
+                        lstrcpy(MemGetFileName(lpxdta), szLinkDest);
+                        MemGetAlternateFileName(lpxdta)[0] = CHAR_NULL;
+                
+                        lpHead->dwTotalCount++;
+                        (lpHead->qTotalSize).QuadPart = (lpxdta->qFileSize).QuadPart +
+                                                        (lpHead->qTotalSize).QuadPart;					
+
+                        iError = 0;
+                        goto Done;
+                    }
+                    break;
+                }
+
+                default:
+                {
+                    WCHAR szText[MAXMESSAGELEN];
+                    WCHAR szTitle[MAXTITLELEN];
+
+                    iError = IDS_COPYERROR + FUNC_EXPAND;
+
+                    LoadString(hAppInstance, IDS_COPYERROR+FUNC_EXPAND, szTitle, COUNTOF(szTitle));
+
+                    FormatError(TRUE, szText, COUNTOF(szText), lfndta.err);
+
+                    MessageBox(hwndDir, szText, szTitle, MB_OK | MB_ICONEXCLAMATION | MB_APPLMODAL);
+                }
+                break;
+            }
+        }
+    }
+
+    //
+    // Find length of directory and trailing backslash.
+    //
+    if (!(lpTemp=StrRChr(szPath, NULL, CHAR_BACKSLASH)))
+        goto CDBDiskGone;
+
+    //
+    // Always show .. if this is not the root directory.
+    //
+    if ((lpTemp - szPath > 3) && (dwAttribs & ATTR_DIR))
+    {
+        //
+        // Add a DTA to the list.
+        //
+        lpHead->dwEntries++;
+
+        lpxdta = MemAdd(&lpLinkLast, 0, 0);
+
+        if (!lpxdta)
+            goto CDBMemoryErr;
+
+        //
+        // Fill the new DTA with a fudged ".." entry.
+        //
+        lpxdta->dwAttrs = ATTR_DIR | ATTR_PARENT;
+        lpxdta->byBitmap = BM_IND_DIRUP;
+        lpxdta->pDocB = NULL;
+
+        MemGetFileName(lpxdta)[0] = CHAR_NULL;
+        MemGetAlternateFileName(lpxdta)[0] = CHAR_NULL;
+
+        //
+        // Date time size name not set since they are ignored
+        //
+    }
+
+    if (lfndta.err)
+        goto CDBDiskGone;
+
+    while (TRUE)
+    {
+        pName = lfndta.fd.cFileName;
+
+        //
+        // be safe, zero unused DOS dta bits
+        //
+        lfndta.fd.dwFileAttributes &= ATTR_USED;
+
+        //
+        // if reparse point, figure out whether it is a junction point
+        if (lfndta.fd.dwFileAttributes & ATTR_REPARSE_POINT)
+        {
+            DWORD tag = DecodeReparsePoint(szPath, pName, szLinkDest, COUNTOF(szLinkDest));
+
+            if (tag == IO_REPARSE_TAG_MOUNT_POINT)
+                lfndta.fd.dwFileAttributes |= ATTR_JUNCTION;
+            else if (tag == IO_REPARSE_TAG_SYMLINK)
+                lfndta.fd.dwFileAttributes |= ATTR_SYMBOLIC;
+            else
+            {
+                // DebugBreak();
+            }
+        }
+
+        //
+        // filter unwanted stuff here based on current view settings
+        //
+        pDoc = NULL;
+        pProgram = NULL;
+        if (!(lfndta.fd.dwFileAttributes & ATTR_DIR))
+        {
+            pProgram = IsProgramFile(pName);
+            pDoc     = IsDocument(pName);
 
             //
-            // Critical section since GWL_HDTA+HDTAABORT reads must
-            // be atomic.
+            // filter programs and documents
             //
+            if (!(dwAttribs & ATTR_PROGRAMS) && pProgram)
+                goto CDBCont;
+            if (!(dwAttribs & ATTR_DOCS) && pDoc)
+                goto CDBCont;
+            if (!(dwAttribs & ATTR_OTHER) && !(pProgram || pDoc))
+                goto CDBCont;
+        }
+        else if (lfndta.fd.dwFileAttributes & ATTR_JUNCTION)
+            if (!(dwAttribs & ATTR_JUNCTION))
+                goto CDBCont;
+
+        //
+        // figure out the bitmap type here
+        //
+        if (lfndta.fd.dwFileAttributes & ATTR_DIR)
+        {
+            //
+            // ignore "."  and ".." directories
+            //
+            if (ISDOTDIR(pName))
+                goto CDBCont;
+
+            // NOTE: Reparse points are directories
+
+            if (IsNetDir(szPath,pName))
+                iBitmap = BM_IND_CLOSEDFS;
+            else
+                iBitmap = BM_IND_CLOSE;
+        }
+        else if (lfndta.fd.dwFileAttributes & (ATTR_HIDDEN | ATTR_SYSTEM))
+            iBitmap = BM_IND_RO;
+        else if (pProgram)
+            iBitmap = BM_IND_APP;
+        else if (pDoc)
+            iBitmap = BM_IND_DOC;
+        else
+            iBitmap = BM_IND_FIL;
+
+        lpxdta = MemAdd(&lpLinkLast, lstrlen(pName), lstrlen(lfndta.fd.cAlternateFileName));
+
+        if (!lpxdta)
+            goto CDBMemoryErr;
+
+        lpHead->dwEntries++;
+
+        lpxdta->dwAttrs = lfndta.fd.dwFileAttributes;
+        lpxdta->ftLastWriteTime = lfndta.fd.ftLastWriteTime;
+
+        //
+        // files > 2^63 will come out negative, so tough.
+        // (WIN32_FIND_DATA.nFileSizeHigh is not signed, but
+        // LARGE_INTEGER is)
+        //
+        lpxdta->qFileSize.LowPart = lfndta.fd.nFileSizeLow;
+        lpxdta->qFileSize.HighPart = lfndta.fd.nFileSizeHigh;
+
+        lpxdta->byBitmap = iBitmap;
+        lpxdta->pDocB = pDoc;			// even if program, use extension list for icon to display
+
+        if (IsLFN(pName))
+            lpxdta->dwAttrs |= ATTR_LFN;
+
+        if (!bCasePreserved)
+            lpxdta->dwAttrs |= ATTR_LOWERCASE;
+
+        lstrcpy(MemGetFileName(lpxdta), pName);
+        lstrcpy(MemGetAlternateFileName(lpxdta), lfndta.fd.cAlternateFileName);
+
+        lpHead->dwTotalCount++;
+        (lpHead->qTotalSize).QuadPart = (lpxdta->qFileSize).QuadPart +
+                                        (lpHead->qTotalSize).QuadPart;
+CDBCont:
+        if (bDirReadRebuildDocString)
+        {
+Abort:
+            WFFindClose(&lfndta);
+            MemDelete(lpStart);
+
+            return NULL;
+        }
+
+        if (bDirReadAbort)
+        {
             EnterCriticalSection(&CriticalSectionDirRead);
 
-            bRead = !GetWindowLongPtr(hwndDir, GWL_HDTA) &&
-                       EDIRABORT_READREQUEST ==
-                          (EDIRABORT)GetWindowLongPtr(hwndDir, GWL_HDTAABORT);
+            bAbort = ((GetWindowLongPtr(hwndDir, GWL_HDTAABORT) &
+                      (EDIRABORT_WINDOWCLOSE | EDIRABORT_READREQUEST)) ||
+                      GetWindowLongPtr(hwndDir, GWL_HDTA));
 
             LeaveCriticalSection(&CriticalSectionDirRead);
 
-            if (bRead) {
-               CreateDTABlockWorker(hwnd, hwndDir);
-               goto Restart;
-            }
-            SetWindowLongPtr(hwndDir, GWLP_USERDATA, 0);
-         }
-      }
-   }
+            if (bAbort)
+                goto Abort;
+        }
 
-   return 0;
-}
-
-
-LPXDTALINK
-CreateDTABlockWorker(
-   HWND hwnd,
-   HWND hwndDir)
-{
-   register LPWSTR pName;
-   PDOCBUCKET pDoc, pProgram;
-
-   LFNDTA lfndta;
-
-   LPXDTALINK lpLinkLast;
-   LPXDTAHEAD lpHead;
-
-   LPXDTA lpxdta;
-
-   INT iBitmap;
-   DRIVE drive;
-
-   LPWSTR lpTemp;
-   HWND hwndTree;
-
-   BOOL bCasePreserved;
-   BOOL bAbort;
-
-   WCHAR szPath[MAXPATHLEN];
-   WCHAR szLinkDest[MAXPATHLEN];
-
-   DWORD dwAttribs;
-   LPXDTALINK lpStart;
-
-   INT iError = 0;
-
-   lpStart = MemNew();
-
-   if (!lpStart) {
-      goto CDBMemoryErr;
-   }
-
-   //
-   // Checking abort and reading current dir must be atomic,
-   // since a directory change causes an abort.
-   //
-   EnterCriticalSection(&CriticalSectionDirRead);
-
-   GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
-   SetWindowLongPtr(hwndDir, GWL_HDTAABORT, EDIRABORT_NULL);
-
-   LeaveCriticalSection(&CriticalSectionDirRead);
-
-   dwAttribs = GetWindowLongPtr(hwnd, GWL_ATTRIBS);
-
-   //
-   // get the drive index assuming path is
-   // fully qualified...
-   //
-   drive = DRIVEID(szPath);
-   bCasePreserved = IsCasePreservedDrive(drive);
-
-   lpHead = MemLinkToHead(lpStart);
-   lpLinkLast = lpStart;
-
-   if (!WFFindFirst(&lfndta, szPath, dwAttribs & ATTR_ALL)) {
-
-      //
-      // Try again!  But first, see if the directory was invalid!
-      //
-      if (ERROR_PATH_NOT_FOUND == lfndta.err) {
-
-         iError = IDS_BADPATHMSG;
-         goto InvalidDirectory;
-      }
-
-      if (!IsTheDiskReallyThere(hwndDir, szPath, FUNC_EXPAND, FALSE)) {
-         if (IsRemoteDrive(drive))
-            iError = IDS_DRIVENOTAVAILABLE;
-         goto CDBDiskGone;
-      }
-
-      //
-      // break out of this loop if we were returned something
-      // other than PATHNOTFOUND
-      //
-      if (!WFFindFirst(&lfndta, szPath, dwAttribs & ATTR_ALL)) {
-
-         switch (lfndta.err) {
-         case ERROR_PATH_NOT_FOUND:
-
-InvalidDirectory:
-
-            //
-            // LATER: fix this so that it comes up only
-            // when not switching x: from \\x\x to \\y\y
-            //
-            // If the path is not found, but the disk is there, then go to
-            // the root and try again; if already at the root, then exit
-            //
-            if (!(lpTemp=StrRChr(szPath, NULL, CHAR_BACKSLASH)) ||
-               (lpTemp - szPath <= 2)) {
-
-               goto CDBDiskGone;
-            }
-
-            if (hwndTree=HasTreeWindow(hwnd)) {
-
-               //
-               // If we changed dirs, and there is a tree window, set the
-               // dir to the root and collapse it
-               // Note that lpTemp-szPath>2, szPath[3] is not in the file spec
-               //
-               szPath[3] = CHAR_NULL;
-               SendMessage(hwndTree, TC_SETDIRECTORY, 0, (LPARAM)szPath);
-               SendMessage(hwndTree, TC_COLLAPSELEVEL, 0, 0L);
-Fail:
-               MemDelete(lpStart);
-               return NULL;
-            }
-
-            lstrcpy(szPath+3, lpTemp+1);
-
-            SendMessage(hwndDir,
-                        FS_CHANGEDISPLAY,
-                        CD_PATH | CD_ALLOWABORT,
-                        (LPARAM)szPath);
-
-            goto Fail;
-
-         case ERROR_FILE_NOT_FOUND:
-         case ERROR_NO_MORE_FILES:
-
+        if (!WFFindNext(&lfndta))
             break;
+    }
 
-         case ERROR_ACCESS_DENIED:
-
-            iError = IDS_NOACCESSDIR;
-            {
-                DWORD tag = DecodeReparsePoint(szPath, NULL, szLinkDest, COUNTOF(szLinkDest));
-                if (tag != IO_REPARSE_TAG_RESERVED_ZERO && WFFindFirst(&lfndta, szLinkDest, ATTR_ALL))
-		        {
-		        	// TODO: make add routine to share with below
-
-					lpxdta = MemAdd(&lpLinkLast, lstrlen(szLinkDest), 0);
-
-					if (!lpxdta)
-					 goto CDBMemoryErr;
-
-					lpHead->dwEntries++;
-
-					lpxdta->dwAttrs = ATTR_DIR | ATTR_REPARSE_POINT;
-					lpxdta->ftLastWriteTime = lfndta.fd.ftLastWriteTime;
-
-					//
-					// files > 2^63 will come out negative, so tough.
-					// (WIN32_FIND_DATA.nFileSizeHigh is not signed, but
-					// LARGE_INTEGER is)
-					//
-					lpxdta->qFileSize.LowPart = lfndta.fd.nFileSizeLow;
-					lpxdta->qFileSize.HighPart = lfndta.fd.nFileSizeHigh;
-
-					lpxdta->byBitmap = BM_IND_CLOSE;
-					lpxdta->pDocB = NULL;
-
-					if (IsLFN(szLinkDest)) {
-					 lpxdta->dwAttrs |= ATTR_LFN;
-					}
-
-					if (!bCasePreserved)
-					 lpxdta->dwAttrs |= ATTR_LOWERCASE;
-
-                    if (tag == IO_REPARSE_TAG_MOUNT_POINT)
-                        lpxdta->dwAttrs |= ATTR_JUNCTION;
-
-                    else if (tag == IO_REPARSE_TAG_SYMLINK)
-                        lpxdta->dwAttrs |= ATTR_SYMBOLIC;
-
-					else
-					{
-						// DebugBreak();
-					}
-
-					lstrcpy(MemGetFileName(lpxdta), szLinkDest);
-				    MemGetAlternateFileName(lpxdta)[0] = CHAR_NULL;
-				    
-					lpHead->dwTotalCount++;
-					(lpHead->qTotalSize).QuadPart = (lpxdta->qFileSize).QuadPart +
-					                              (lpHead->qTotalSize).QuadPart;					
-
-			        iError = 0;
-			        goto Done;
-		        }
-		    }
-            break;
-
-         default:
-            {
-               WCHAR szText[MAXMESSAGELEN];
-               WCHAR szTitle[MAXTITLELEN];
-
-               iError = IDS_COPYERROR + FUNC_EXPAND;
-
-               LoadString(hAppInstance,
-                          IDS_COPYERROR+FUNC_EXPAND,
-                          szTitle,
-                          COUNTOF(szTitle));
-
-               FormatError(TRUE, szText, COUNTOF(szText), lfndta.err);
-
-               MessageBox(hwndDir,
-                          szText,
-                          szTitle,
-                          MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL);
-            }
-            break;
-         }
-      }
-   }
-
-   //
-   // Find length of directory and trailing backslash.
-   //
-   if (!(lpTemp=StrRChr(szPath, NULL, CHAR_BACKSLASH)))
-      goto CDBDiskGone;
-
-   //
-   // Always show .. if this is not the root directory.
-   //
-   if ((lpTemp - szPath > 3) && (dwAttribs & ATTR_DIR)) {
-
-      //
-      // Add a DTA to the list.
-      //
-      lpHead->dwEntries++;
-
-      lpxdta = MemAdd(&lpLinkLast, 0, 0);
-
-      if (!lpxdta)
-         goto CDBMemoryErr;
-
-      //
-      // Fill the new DTA with a fudged ".." entry.
-      //
-      lpxdta->dwAttrs = ATTR_DIR | ATTR_PARENT;
-      lpxdta->byBitmap = BM_IND_DIRUP;
-	  lpxdta->pDocB = NULL;
-
-
-      MemGetFileName(lpxdta)[0] = CHAR_NULL;
-      MemGetAlternateFileName(lpxdta)[0] = CHAR_NULL;
-
-      //
-      // Date time size name not set since they are ignored
-      //
-   }
-
-   if (lfndta.err)
-      goto CDBDiskGone;
-
-   while (TRUE) {
-
-      pName = lfndta.fd.cFileName;
-
-      //
-      // be safe, zero unused DOS dta bits
-      //
-      lfndta.fd.dwFileAttributes &= ATTR_USED;
-
-      //
-      // if reparse point, figure out whether it is a junction point
-	  if (lfndta.fd.dwFileAttributes & ATTR_REPARSE_POINT)
-      {
-          DWORD tag = DecodeReparsePoint(szPath, pName, szLinkDest, COUNTOF(szLinkDest));
-
-          if (tag == IO_REPARSE_TAG_MOUNT_POINT)
-              lfndta.fd.dwFileAttributes |= ATTR_JUNCTION;
-
-          else if (tag == IO_REPARSE_TAG_SYMLINK)
-              lfndta.fd.dwFileAttributes |= ATTR_SYMBOLIC;
-
-          else
-          {
-              // DebugBreak();
-          }
-      }
-
-	  //
-      // filter unwanted stuff here based on current view settings
-      //
-	  pDoc = NULL;
-	  pProgram = NULL;
-      if (!(lfndta.fd.dwFileAttributes & ATTR_DIR)) {
-
-         pProgram = IsProgramFile(pName);
-         pDoc     = IsDocument(pName);
-
-         //
-         // filter programs and documents
-         //
-         if (!(dwAttribs & ATTR_PROGRAMS) && pProgram)
-            goto CDBCont;
-         if (!(dwAttribs & ATTR_DOCS) && pDoc)
-            goto CDBCont;
-         if (!(dwAttribs & ATTR_OTHER) && !(pProgram || pDoc))
-            goto CDBCont;
-      }
-	  else if (lfndta.fd.dwFileAttributes & ATTR_JUNCTION) {
-		  if (!(dwAttribs & ATTR_JUNCTION))
-			  goto CDBCont;
-	  }
-
-      //
-      // figure out the bitmap type here
-      //
-      if (lfndta.fd.dwFileAttributes & ATTR_DIR) {
-
-         //
-         // ignore "."  and ".." directories
-         //
-         if (ISDOTDIR(pName)) {
-            goto CDBCont;
-         }
-
-        // NOTE: Reparse points are directories
-
-         if (IsNetDir(szPath,pName))
-            iBitmap = BM_IND_CLOSEDFS;
-         else
-            iBitmap = BM_IND_CLOSE;
-      } else if (lfndta.fd.dwFileAttributes & (ATTR_HIDDEN | ATTR_SYSTEM)) {
-         iBitmap = BM_IND_RO;
-      } else if (pProgram) {
-         iBitmap = BM_IND_APP;
-      } else if (pDoc) {
-         iBitmap = BM_IND_DOC;
-      } else {
-         iBitmap = BM_IND_FIL;
-      }
-
-      lpxdta = MemAdd(&lpLinkLast,
-                      lstrlen(pName),
-                      lstrlen(lfndta.fd.cAlternateFileName));
-
-      if (!lpxdta)
-         goto CDBMemoryErr;
-
-      lpHead->dwEntries++;
-
-      lpxdta->dwAttrs = lfndta.fd.dwFileAttributes;
-      lpxdta->ftLastWriteTime = lfndta.fd.ftLastWriteTime;
-
-      //
-      // files > 2^63 will come out negative, so tough.
-      // (WIN32_FIND_DATA.nFileSizeHigh is not signed, but
-      // LARGE_INTEGER is)
-      //
-      lpxdta->qFileSize.LowPart = lfndta.fd.nFileSizeLow;
-      lpxdta->qFileSize.HighPart = lfndta.fd.nFileSizeHigh;
-
-      lpxdta->byBitmap = iBitmap;
-      lpxdta->pDocB = pDoc;			// even if program, use extension list for icon to display
-
-      if (IsLFN(pName)) {
-         lpxdta->dwAttrs |= ATTR_LFN;
-      }
-
-      if (!bCasePreserved)
-         lpxdta->dwAttrs |= ATTR_LOWERCASE;
-
-      lstrcpy(MemGetFileName(lpxdta), pName);
-      lstrcpy(MemGetAlternateFileName(lpxdta), lfndta.fd.cAlternateFileName);
-
-      lpHead->dwTotalCount++;
-      (lpHead->qTotalSize).QuadPart = (lpxdta->qFileSize).QuadPart +
-                                      (lpHead->qTotalSize).QuadPart;
-
-CDBCont:
-
-      if (bDirReadRebuildDocString) {
-Abort:
-         WFFindClose(&lfndta);
-         MemDelete(lpStart);
-
-         return NULL;
-      }
-
-
-      if (bDirReadAbort) {
-
-         EnterCriticalSection(&CriticalSectionDirRead);
-
-         bAbort = ((GetWindowLongPtr(hwndDir,
-                                  GWL_HDTAABORT) & (EDIRABORT_WINDOWCLOSE|
-                                                    EDIRABORT_READREQUEST)) ||
-                   GetWindowLongPtr(hwndDir, GWL_HDTA));
-
-         LeaveCriticalSection(&CriticalSectionDirRead);
-
-         if (bAbort)
-            goto Abort;
-      }
-
-      if (!WFFindNext(&lfndta)) {
-         break;
-      }
-   }
-
-   WFFindClose(&lfndta);
+    WFFindClose(&lfndta);
 
 CDBDiskGone:
+    //
+    // If no error, but no entries then no files
+    //
+    if (!iError && !lpHead->dwEntries)
+        iError = IDS_NOFILES;
 
-   //
-   // If no error, but no entries then no files
-   //
-   if (!iError && !lpHead->dwEntries)
-      iError = IDS_NOFILES;
-
-   goto Done;
+    goto Done;
 
 CDBMemoryErr:
 
-   WFFindClose(&lfndta);
+    WFFindClose(&lfndta);
 
-   MyMessageBox(hwndFrame,
-                IDS_OOMTITLE,
-                IDS_OOMREADINGDIRMSG,
-                MB_OK | MB_ICONEXCLAMATION);
+    MyMessageBox(hwndFrame,
+                 IDS_OOMTITLE,
+                 IDS_OOMREADINGDIRMSG,
+                 MB_OK | MB_ICONEXCLAMATION);
 
-   //
-   // !! BUGBUG !!
-   //
-   // What should the error code be?
-   //
-   iError = 0;
+    //
+    // !! BUGBUG !!
+    //
+    // What should the error code be?
+    //
+    iError = 0;
 
 Done:
+    if (iError)
+    {
+        MemDelete(lpStart);
+        lpStart = NULL;
+    }
 
-   if (iError) {
-      MemDelete(lpStart);
-      lpStart = NULL;
-   }
+    SetLBFont(hwndDir,
+              GetDlgItem(hwndDir, IDCW_LISTBOX),
+              hFont,
+              GetWindowLongPtr(hwnd, GWL_VIEW),
+              lpStart);
 
-   SetLBFont(hwndDir,
-             GetDlgItem(hwndDir, IDCW_LISTBOX),
-             hFont,
-             GetWindowLongPtr(hwnd, GWL_VIEW),
-             lpStart);
+    R_Space(drive);
+    U_Space(drive);
 
-   R_Space(drive);
-   U_Space(drive);
+    if (SendMessage(hwndDir,
+                    FS_DIRREADDONE,
+                    (WPARAM)iError,
+                    (LPARAM)lpStart) != (LRESULT)lpStart)
+    {
 
-   if (SendMessage(hwndDir,
-                   FS_DIRREADDONE,
-                   (WPARAM)iError,
-                   (LPARAM)lpStart) != (LRESULT)lpStart) {
+        MemDelete(lpStart);
+        lpStart = NULL;
+    }
 
-      MemDelete(lpStart);
-      lpStart = NULL;
-   }
-
-   return lpStart;
+    return lpStart;
 }
-
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1128,71 +1034,72 @@ Done:
 // Notes:    !! BUGBUG !! Check if this is reentrant !!
 //
 /////////////////////////////////////////////////////////////////////
-
-BOOL
-IsNetDir(LPWSTR pPath, LPWSTR pName)
+BOOL IsNetDir(LPWSTR pPath, LPWSTR pName)
 {
-   DWORD dwType;
-   WCHAR szFullPath[2*MAXPATHLEN];
+    DWORD dwType;
+    WCHAR szFullPath[2*MAXPATHLEN];
 
-   DRIVE drive = DRIVEID(pPath);
+    DRIVE drive = DRIVEID(pPath);
 
-   if (!WAITNET_TYPELOADED)
-      return FALSE;
+    if (!WAITNET_TYPELOADED)
+        return FALSE;
 
-   lstrcpy(szFullPath, pPath);
-   StripFilespec(szFullPath);
+    lstrcpy(szFullPath, pPath);
+    StripFilespec(szFullPath);
 
-   AddBackslash(szFullPath);
-   lstrcat(szFullPath, pName);
+    AddBackslash(szFullPath);
+    lstrcat(szFullPath, pName);
 
-   //
-   // Do a Net check, but only if we haven't failed before...
-   // This logic is used to speed up share/not-share directory
-   // information.  If it has failed before, never call it again
-   // for this drive, since the fail is assumed always due to
-   // insufficient privilege.
-   //
-   if (aDriveInfo[drive].bShareChkFail ||
-       !(WNetGetDirectoryType(szFullPath, &dwType,
-                              !aDriveInfo[drive].bShareChkTried) == WN_SUCCESS))
-   {
-      dwType = 0;
+    //
+    // Do a Net check, but only if we haven't failed before...
+    // This logic is used to speed up share/not-share directory
+    // information.  If it has failed before, never call it again
+    // for this drive, since the fail is assumed always due to
+    // insufficient privilege.
+    //
+    if (aDriveInfo[drive].bShareChkFail ||
+        !(WNetGetDirectoryType(szFullPath, &dwType, !aDriveInfo[drive].bShareChkTried) == WN_SUCCESS))
+    {
+        dwType = 0;
 
-      //
-      // Remind ourselves that we failed, so don't try again on this drive.
-      //
-      aDriveInfo[drive].bShareChkFail = TRUE;
-   }
+        //
+        // Remind ourselves that we failed, so don't try again on this drive.
+        //
+        aDriveInfo[drive].bShareChkFail = TRUE;
+    }
 
-   aDriveInfo[drive].bShareChkTried = TRUE;
-   return dwType;
+    aDriveInfo[drive].bShareChkTried = TRUE;
+    return dwType;
 }
 
 typedef struct _REPARSE_DATA_BUFFER {
-  ULONG  ReparseTag;
-  USHORT  ReparseDataLength;
-  USHORT  Reserved;
-  union {
-    struct {
-      USHORT  SubstituteNameOffset;
-      USHORT  SubstituteNameLength;
-      USHORT  PrintNameOffset;
-      USHORT  PrintNameLength;
-      ULONG   Flags; // it seems that the docu is missing this entry (at least 2008-03-07)
-      WCHAR  PathBuffer[1];
-      } SymbolicLinkReparseBuffer;
-    struct {
-      USHORT  SubstituteNameOffset;
-      USHORT  SubstituteNameLength;
-      USHORT  PrintNameOffset;
-      USHORT  PrintNameLength;
-      WCHAR  PathBuffer[1];
-      } MountPointReparseBuffer;
-    struct {
-      UCHAR  DataBuffer[1];
-    } GenericReparseBuffer;
-  };
+    ULONG  ReparseTag;
+    USHORT  ReparseDataLength;
+    USHORT  Reserved;
+    union
+    {
+        struct
+        {
+            USHORT  SubstituteNameOffset;
+            USHORT  SubstituteNameLength;
+            USHORT  PrintNameOffset;
+            USHORT  PrintNameLength;
+            ULONG   Flags; // it seems that the docu is missing this entry (at least 2008-03-07)
+            WCHAR  PathBuffer[1];
+        } SymbolicLinkReparseBuffer;
+        struct
+        {
+            USHORT  SubstituteNameOffset;
+            USHORT  SubstituteNameLength;
+            USHORT  PrintNameOffset;
+            USHORT  PrintNameLength;
+            WCHAR  PathBuffer[1];
+        } MountPointReparseBuffer;
+        struct
+        {
+            UCHAR  DataBuffer[1];
+        } GenericReparseBuffer;
+    };
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
 #if FALSE
@@ -1246,8 +1153,7 @@ DWORD DecodeReparsePoint(LPCWSTR szMyFile, LPCWSTR szChild, LPWSTR szDest, DWORD
 	reparseTag = rdata->ReparseTag;
 
 	if (IsReparseTagMicrosoft(rdata->ReparseTag) && 
-		(rdata->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT || rdata->ReparseTag == IO_REPARSE_TAG_SYMLINK)
-		)		
+		(rdata->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT || rdata->ReparseTag == IO_REPARSE_TAG_SYMLINK))
 	{
 		cwcLink = rdata->SymbolicLinkReparseBuffer.SubstituteNameLength / sizeof(WCHAR);
         // NOTE: cwcLink does not include any '\0' termination character
@@ -1263,9 +1169,7 @@ DWORD DecodeReparsePoint(LPCWSTR szMyFile, LPCWSTR szChild, LPWSTR szDest, DWORD
 			szDest[cwcLink] = 0;
 		}
 		else
-		{
 			lstrcpy(szDest, L"<symbol link reference too long>");
-		}
 	}
 
 	LocalFree(rdata);
@@ -1281,7 +1185,6 @@ LONG WFRegGetValueW(HKEY hkey, LPCWSTR lpSubKey, LPCWSTR lpValue, LPDWORD pdwTyp
 	if ((dwStatus = RegOpenKey(hkey, lpSubKey, &hkeySub)) == ERROR_SUCCESS)
 	{
 			dwStatus = RegQueryValueEx(hkeySub, lpValue, NULL, pdwType, pvData, pcbData);
-
 			RegCloseKey(hkeySub);
 	}
 

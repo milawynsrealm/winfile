@@ -17,9 +17,9 @@
 #include <shlobj.h>
 
 #ifndef GUID_DEFINED
-DEFINE_OLEGUID(IID_IUnknown,            0x00000000L, 0, 0);
-DEFINE_OLEGUID(IID_IDropSource,             0x00000121, 0, 0);
-DEFINE_OLEGUID(IID_IDropTarget,             0x00000122, 0, 0);
+DEFINE_OLEGUID(IID_IUnknown, 0x00000000L, 0, 0);
+DEFINE_OLEGUID(IID_IDropSource, 0x00000121, 0, 0);
+DEFINE_OLEGUID(IID_IDropTarget, 0x00000122, 0, 0);
 #endif
 
 HRESULT CreateDropTarget(HWND hwnd, WF_IDropTarget **ppDropTarget);
@@ -83,7 +83,6 @@ void PaintRectItem(WF_IDropTarget *This, POINTL *ppt)
 	}
 }
 
-
 LPWSTR QuotedDropList(IDataObject *pDataObject)
 {
 	HDROP hdrop;
@@ -124,7 +123,6 @@ LPWSTR QuotedDropList(IDataObject *pDataObject)
 		// release the data using the COM API
 		ReleaseStgMedium(&stgmed);
 	}
-
 	return szFiles;
 }
 
@@ -134,7 +132,7 @@ HDROP CreateDropFiles(POINT pt, BOOL fNC, LPTSTR pszFiles)
     HANDLE hDrop;
     LPBYTE lpList;
     UINT cbList;
-	LPTSTR szSrc;
+	LPWSTR szSrc;
 
     LPDROPFILES lpdfs;
     WCHAR szFile[MAXPATHLEN];
@@ -163,8 +161,8 @@ HDROP CreateDropFiles(POINT pt, BOOL fNC, LPTSTR pszFiles)
 	lpList = (LPBYTE)lpdfs + sizeof(DROPFILES);
 	szSrc = pszFiles;
 
-    while (szSrc = GetNextFile(szSrc, szFile, COUNTOF(szFile))) {
-
+    while (szSrc = GetNextFile(szSrc, szFile, COUNTOF(szFile))) \
+    {
        QualifyPath(szFile);
 
        lstrcpy((LPTSTR)lpList, szFile);
@@ -187,16 +185,18 @@ static HRESULT StreamToFile(IStream *stream, WCHAR *szFile)
     HRESULT hr;
 	HANDLE hFile;
 
-    hFile = CreateFile( szFile,
+    hFile = CreateFile(szFile,
           FILE_READ_DATA | FILE_WRITE_DATA,
           FILE_SHARE_READ | FILE_SHARE_WRITE,
           NULL,
           CREATE_ALWAYS,
           FILE_ATTRIBUTE_TEMPORARY,
-          NULL );
+          NULL);
 
-    if (hFile != INVALID_HANDLE_VALUE) {
-        do {
+    if (hFile != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
             hr = stream->lpVtbl->Read(stream, buffer, BLOCK_SIZE, &bytes_read);
 			bytes_written = 0;
             if (SUCCEEDED(hr) && bytes_read)
@@ -345,22 +345,20 @@ static DWORD DropEffect(DWORD grfKeyState, POINTL pt, DWORD dwAllowed)
 	
 	// 2. work out that the drop-effect should be based on grfKeyState
 	if(grfKeyState & MK_CONTROL)
-	{
 		dwEffect = dwAllowed & DROPEFFECT_COPY;
-	}
 	else if(grfKeyState & MK_SHIFT)
-	{
 		dwEffect = dwAllowed & DROPEFFECT_MOVE;
-	}
 	
 	// 3. no key-modifiers were specified (or drop effect not allowed), so
 	//    base the effect on those allowed by the dropsource
 	if(dwEffect == 0)
 	{
-		if(dwAllowed & DROPEFFECT_COPY) dwEffect = DROPEFFECT_COPY;
-		if(dwAllowed & DROPEFFECT_MOVE) dwEffect = DROPEFFECT_MOVE;
+		if(dwAllowed & DROPEFFECT_COPY)
+            dwEffect = DROPEFFECT_COPY;
+		if(dwAllowed & DROPEFFECT_MOVE)
+            dwEffect = DROPEFFECT_MOVE;
 	}
-	
+
 	return dwEffect;
 }
 
@@ -369,7 +367,7 @@ static DWORD DropEffect(DWORD grfKeyState, POINTL pt, DWORD dwAllowed)
 //
 static ULONG STDMETHODCALLTYPE idroptarget_addref (WF_IDropTarget* This)
 {
-  return InterlockedIncrement(&This->m_lRefCount);
+    return InterlockedIncrement(&This->m_lRefCount);
 }
 
 //
@@ -377,47 +375,38 @@ static ULONG STDMETHODCALLTYPE idroptarget_addref (WF_IDropTarget* This)
 //
 static HRESULT STDMETHODCALLTYPE
 idroptarget_queryinterface (WF_IDropTarget *This,
-			       REFIID          riid,
-			       LPVOID         *ppvObject)
+			       REFIID riid,
+			       LPVOID *ppvObject)
 {
+    *ppvObject = NULL;
 
-  *ppvObject = NULL;
-
-//  PRINT_GUID (riid);
-  if (IsEqualIID (riid, &IID_IUnknown) || IsEqualIID (riid, &IID_IDropTarget))
+    //PRINT_GUID (riid);
+    if (IsEqualIID (riid, &IID_IUnknown) || IsEqualIID (riid, &IID_IDropTarget))
     {
-      idroptarget_addref (This);
-      *ppvObject = This;
-      return S_OK;
+        idroptarget_addref (This);
+        *ppvObject = This;
+        return S_OK;
     }
-  
-  else
-    {
-      return E_NOINTERFACE;
-    }
+    else
+        return E_NOINTERFACE;
 }
-
 
 //
 //	IUnknown::Release
 //
-static ULONG STDMETHODCALLTYPE
-idroptarget_release (WF_IDropTarget* This)
-{
-    
-  LONG count = InterlockedDecrement(&This->m_lRefCount);
+static ULONG STDMETHODCALLTYPE idroptarget_release (WF_IDropTarget* This)
+{   
+    LONG count = InterlockedDecrement(&This->m_lRefCount);
 
-  if(count == 0)
+    if(count == 0)
 	{
 		free(This);
 		return 0;
 	}
 	else
-	{
 		return count;
-	}
-  
 }
+
 //
 //	IDropTarget::DragEnter
 //
@@ -438,9 +427,7 @@ static HRESULT STDMETHODCALLTYPE idroptarget_dragenter(WF_IDropTarget* This, WF_
 		PaintRectItem(This, &pt);
 	}
 	else
-	{
 		*pdwEffect = DROPEFFECT_NONE;
-	}
 
 	return S_OK;
 }
@@ -458,9 +445,7 @@ static HRESULT STDMETHODCALLTYPE idroptarget_dragover(WF_IDropTarget* This, DWOR
 		PaintRectItem(This, &pt);
 	}
 	else
-	{
 		*pdwEffect = DROPEFFECT_NONE;
-	}
 
 	return S_OK;
 }
@@ -487,21 +472,19 @@ static HRESULT STDMETHODCALLTYPE idroptarget_drop(WF_IDropTarget* This, IDataObj
 		DropData(This, pDataObject, *pdwEffect);
 	}
 	else
-	{
 		*pdwEffect = DROPEFFECT_NONE;
-	}
 
 	return S_OK;
 }
 
 static WF_IDropTargetVtbl idt_vtbl = {
-  idroptarget_queryinterface,
-  idroptarget_addref,
-  idroptarget_release,
-  idroptarget_dragenter,
-  idroptarget_dragover,
-  idroptarget_dragleave,
-  idroptarget_drop
+    idroptarget_queryinterface,
+    idroptarget_addref,
+    idroptarget_release,
+    idroptarget_dragenter,
+    idroptarget_dragover,
+    idroptarget_dragleave,
+    idroptarget_drop
 };
 
 void DropData(WF_IDropTarget *This, IDataObject *pDataObject, DWORD dwEffect)
@@ -510,7 +493,7 @@ void DropData(WF_IDropTarget *This, IDataObject *pDataObject, DWORD dwEffect)
 	HWND hwndLB;
 	BOOL fTree;
 	LPWSTR szFiles = NULL;
-	WCHAR     szDest[MAXPATHLEN];
+	WCHAR szDest[MAXPATHLEN];
 
 	hwndLB = GetDlgItem(This->m_hWnd, IDCW_LISTBOX);
 	fTree = FALSE;
@@ -539,7 +522,7 @@ void DropData(WF_IDropTarget *This, IDataObject *pDataObject, DWORD dwEffect)
 	}
 	else
 	{
-		LPXDTA    lpxdta;
+		LPXDTA lpxdta;
 
 		SendMessage(This->m_hWnd, FS_GETDIRECTORY, COUNTOF(szDest), (LPARAM)szDest);
 
@@ -607,22 +590,22 @@ void UnregisterDropWindow(HWND hwnd, IDropTarget *pDropTarget)
 
 WF_IDropTarget * WF_IDropTarget_new(HWND hwnd)
 {
-  WF_IDropTarget *result;
+    WF_IDropTarget *result;
 
-  result = calloc(1, sizeof(WF_IDropTarget));
+    result = calloc(1, sizeof(WF_IDropTarget));
 
-  if (result)
-  {
-	  result->idt.lpVtbl = (IDropTargetVtbl*)&idt_vtbl;
+    if (result)
+    {
+        result->idt.lpVtbl = (IDropTargetVtbl*)&idt_vtbl;
 
-	  result->m_lRefCount = 1;
-	  result->m_hWnd = hwnd;
-	  result->m_fAllowDrop = FALSE;
+        result->m_lRefCount = 1;
+        result->m_hWnd = hwnd;
+        result->m_fAllowDrop = FALSE;
 
-	  // return result;
-  }
+        // return result;
+    }
 
-  return result;
+    return result;
 }
 
 HRESULT CreateDropTarget(HWND hwnd, WF_IDropTarget **ppDropTarget) 

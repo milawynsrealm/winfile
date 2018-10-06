@@ -4,11 +4,18 @@ This permanent fork of Microsoft's WinFile is designed to be an enhanced version
 
 ## Building WinFile+
 
-Right now, the program is being designed to be built in [ReactOS](https://reactos.org/) (Server 2003 or later), but it should be fairly easy to compile it elsewhere.
+Right now, the program is being designed to be built in [ReactOS](https://reactos.org/) (Server 2003 or later), but it should be fairly easy to compile it elsewhere. There are no external libraries used (except for the ones that ship with Windows), and everything is compiled in C and Win32.
 
 ## History
 
 The Windows File manager was originally released with Windows 3.0 in the early 1990s.  You can read more about the history at https://en.wikipedia.org/wiki/File_Manager_(Windows).
+
+## Changes from Original
+
+* UNICODE Only
+    - This means that the program will only work for Windows NT 5.1 or later and not the older DOS versions of Windows (95/98/ME).
+* CMake Build System
+    - Makes it easier to build the project without having to update every single build system (MinGW, MSVC, etc.) with every commit.
 
 ## Contributing
 

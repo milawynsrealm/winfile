@@ -34,104 +34,98 @@
 //
 /////////////////////////////////////////////////////////////////////
 
-BOOL
-WNetStat(INT nIndex)
+BOOL WNetStat(INT nIndex)
 {
-   static DWORD fdwRet = (DWORD)-1;
-   DWORD dwError;
+    static DWORD fdwRet = (DWORD)-1;
+    DWORD dwError;
 
-   BOOL bNetwork = FALSE;
-   BOOL bConnect = FALSE;
+    BOOL bNetwork = FALSE;
+    BOOL bConnect = FALSE;
 
-   HKEY hKey;
+    HKEY hKey;
 
-   DWORD dwcbBuffer = 0;
+    DWORD dwcbBuffer = 0;
 
-   if (
+    if (
 //
 // Disable NS_REFRESH since we test for network installed on disk,
 // not network services started.
 //
 #if NSREFRESH
-      NS_REFRESH == nIndex ||
+    NS_REFRESH == nIndex ||
 #endif
-      (DWORD) -1 == fdwRet) {
+    (DWORD) -1 == fdwRet)
+    {
+        fdwRet = 0;
 
-      fdwRet = 0;
+        //
+        // Check for connection dialog
+        //
 
-      //
-      // Check for connection dialog
-      //
-
-      dwError = RegOpenKey(HKEY_LOCAL_MACHINE,
-         TEXT("System\\CurrentControlSet\\Control\\NetworkProvider\\Order"),
-         &hKey);
-
-      if (!dwError) {
-
-         dwError = RegQueryValueEx(hKey,
-            TEXT("ProviderOrder"),
-            NULL,
-            NULL,
-            NULL,
-            &dwcbBuffer);
-
-         if (ERROR_SUCCESS == dwError && dwcbBuffer > 1) {
-
-            bNetwork = TRUE;
-         }
-
-         RegCloseKey(hKey);
-      }
-
-      if (bNetwork) {
-#if 0
-         //
-         // Check the registry to see if the user can make connections
-         //
-         dwError = RegOpenKey(HKEY_CURRENT_USER,
-            TEXT("Software\\Microsoft\\Windows NT\\CurrentVersion\\File Manager\\Settings"),
+        dwError = RegOpenKey(HKEY_LOCAL_MACHINE,
+            L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order",
             &hKey);
 
-         if (dwError != ERROR_SUCCESS) {
-            bConnect = TRUE;
-         } else {
+        if (!dwError)
+        {
+            dwError = RegQueryValueEx(hKey,
+                L"ProviderOrder",
+                NULL, NULL, NULL,
+                &dwcbBuffer);
 
-            cb = sizeof(dwTemp);
-            dwTemp = 0;
-
-            dwError = RegQueryValueEx(hKey, TEXT("Network"),
-               NULL, NULL, (LPBYTE)&dwTemp, &cb);
-
-            if (dwError != ERROR_SUCCESS || dwTemp)
-               bConnect = TRUE;
+            if (ERROR_SUCCESS == dwError && dwcbBuffer > 1)
+                bNetwork = TRUE;
 
             RegCloseKey(hKey);
-         }
+        }
 
+        if (bNetwork)
+        {
+#if 0
+            //
+            // Check the registry to see if the user can make connections
+            //
+            dwError = RegOpenKey(HKEY_CURRENT_USER,
+                L"Software\\Microsoft\\Windows NT\\CurrentVersion\\File Manager\\Settings",
+                &hKey);
 
-         if (bConnect) {
-            fdwRet |= NS_CONNECTDLG|NS_CONNECT;
-         }
+            if (dwError != ERROR_SUCCESS)
+                bConnect = TRUE;
+            else
+            {
+                cb = sizeof(dwTemp);
+                dwTemp = 0;
+
+                dwError = RegQueryValueEx(hKey, L"Network",
+                    NULL, NULL, (LPBYTE)&dwTemp, &cb);
+
+                if (dwError != ERROR_SUCCESS || dwTemp)
+                    bConnect = TRUE;
+
+                RegCloseKey(hKey);
+            }
+
+            if (bConnect)
+                fdwRet |= NS_CONNECTDLG|NS_CONNECT;
 #else
-         fdwRet |= NS_CONNECTDLG|NS_CONNECT;
+            fdwRet |= NS_CONNECTDLG|NS_CONNECT;
 #endif
-      }
+        }
 
-      //
-      // Check for share-ability
-      //
+        //
+        // Check for share-ability
+        //
 
-      dwError = RegOpenKey(HKEY_LOCAL_MACHINE,
-         TEXT("System\\CurrentControlSet\\Services\\LanmanServer"),
-         &hKey);
+        dwError = RegOpenKey(HKEY_LOCAL_MACHINE,
+            L"System\\CurrentControlSet\\Services\\LanmanServer",
+            &hKey);
 
-      if (!dwError) {
+        if (!dwError)
+        {
+            fdwRet |= NS_SHAREDLG|NS_PROPERTYDLG;
+            RegCloseKey(hKey);
+        }
+    }
 
-         fdwRet |= NS_SHAREDLG|NS_PROPERTYDLG;
-         RegCloseKey(hKey);
-      }
-   }
-
-   return fdwRet & nIndex ? TRUE : FALSE;
+    return (fdwRet & nIndex) ? TRUE : FALSE;
 }

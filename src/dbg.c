@@ -28,104 +28,87 @@ unsigned long BreakFlags = 0
     // | BF_START
     ;     // set these to break on TRACEs
 
-VOID DbgAssert(
-LPTSTR file,
-int line)
+VOID DbgAssert(LPWSTR file, int line)
 {
-	 wsprintf(szFmt,szAsrtFmt,file,line);
-	 OutputDebugString(szFmt);
+    wsprintf(szFmt,szAsrtFmt,file,line);
+	OutputDebugString(szFmt);
 //    DbgPrint(szAsrtFmt, file, line);
     DebugBreak();
 }
 
 
-VOID DbgTrace(
-DWORD tf,
-LPTSTR lpstr)
+VOID DbgTrace(DWORD tf, LPWSTR lpstr)
 {
-    if (tf & TraceFlags) {
-	 wsprintf(szFmt, L"%s\n", lpstr);
-	 OutputDebugString(szFmt);
+    if (tf & TraceFlags)
+    {
+        wsprintf(szFmt, L"%s\n", lpstr);
+        OutputDebugString(szFmt);
 //        DbgPrint("%s\n", lpstr);
-        if (tf & BreakFlags) {
+        if (tf & BreakFlags)
             DebugBreak();
-        }
     }
 }
 
 
-VOID DbgBreak(
-DWORD bf,
-LPTSTR file,
-int line)
+VOID DbgBreak(DWORD bf, LPWSTR file, int line)
 {
-    if (bf & BreakFlags) {
-	 wsprintf(szFmt, L"BREAK at %s:%d\n", file, line);
-	 OutputDebugString(szFmt);
+    if (bf & BreakFlags)
+    {
+        wsprintf(szFmt, L"BREAK at %s:%d\n", file, line);
+        OutputDebugString(szFmt);
 //        DbgPrint("BREAK at %s:%d\n", file, line);
         DebugBreak();
     }
 }
 
 
-VOID DbgPrint1(
-DWORD tf,
-LPTSTR fmt,
-LPTSTR p1)
+VOID DbgPrint1(DWORD tf, LPWSTR fmt, LPWSTR p1)
 {
-    if (tf & TraceFlags) {
-	 wsprintf(szFmt,fmt, p1);
-	 OutputDebugString(szFmt);
-//	 DbgPrint("%d",GetTickCount());
-	 OutputDebugString(L"\n");
+    if (tf & TraceFlags)
+    {
+        wsprintf(szFmt,fmt, p1);
+        OutputDebugString(szFmt);
+//	      DbgPrint("%d",GetTickCount());
+        OutputDebugString(L"\n");
 //        DbgPrint(fmt, p1);
 //        DbgPrint("\n");
     }
-    if (tf & BreakFlags) {
+    if (tf & BreakFlags)
         DebugBreak();
-    }
 }
 
-
-VOID DbgEnter(
-LPTSTR funName)
+VOID DbgEnter(LPTSTR funName)
 {
     DbgPrint1(BF_PROCTRACE, L"> %s ", funName);
 }
 
-VOID DbgLeave(
-LPTSTR funName)
+VOID DbgLeave(LPTSTR funName)
 {
     DbgPrint1(BF_PROCTRACE, L" <%s ", funName);
 }
 
-
-VOID DbgTraceMessage(
-LPTSTR funName,
-LPTSTR msgName)
+VOID DbgTraceMessage(LPWSTR funName, LPWSTR msgName)
 {
-    if (BF_MSGTRACE & TraceFlags) {
-	 wsprintf(szFmt, L"MSG: %s - %s\n", funName, msgName);
-	 OutputDebugString(szFmt);
+    if (BF_MSGTRACE & TraceFlags)
+    {
+        wsprintf(szFmt, L"MSG: %s - %s\n", funName, msgName);
+        OutputDebugString(szFmt);
 //        DbgPrint("MSG: %s - %s\n", funName, msgName);
     }
-    if (BF_MSGTRACE & BreakFlags) {
+    if (BF_MSGTRACE & BreakFlags)
         DebugBreak();
-    }
 }
 
-VOID DbgTraceDefMessage(
-LPTSTR funName,
-WORD msgId)
+VOID DbgTraceDefMessage(LPWSTR funName, WORD msgId)
 {
-    if (BF_DEFMSGTRACE & TraceFlags) {
-	 wsprintf(szFmt, L"MSG: %s - default(0x%x)\n", funName, msgId);
-	 OutputDebugString(szFmt);
+    if (BF_DEFMSGTRACE & TraceFlags)
+    {
+        wsprintf(szFmt, L"MSG: %s - default(0x%x)\n", funName, msgId);
+        OutputDebugString(szFmt);
 //        DbgPrint("MSG: %s - default(0x%x)\n", funName, msgId);
     }
-    if (BF_DEFMSGTRACE & BreakFlags) {
+    if (BF_DEFMSGTRACE & BreakFlags)
         DebugBreak();
-    }
 }
 
 #endif // DBG

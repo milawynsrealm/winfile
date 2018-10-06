@@ -12,7 +12,6 @@
 #include "wfcopy.h"
 #include "treectl.h"
 
-
 //
 //  Constant Declarations.
 //
@@ -27,7 +26,6 @@
 #define PROGRESS_UPD_FILENUMBERS         9
 #define PROGRESS_UPD_FINAL              10
 
-
 //
 //  Return values for CompressErrMessageBox routine.
 //
@@ -35,8 +33,6 @@
 #define WF_RETRY_DEVIO      2
 //      IDABORT             3
 //      IDIGNORE            5
-
-
 
 //
 //  Global variables to hold the User option information.
@@ -48,7 +44,6 @@ HANDLE hDlgProgress   = NULL;
 
 BOOL bCompressReEntry = FALSE;
 BOOL bIgnoreAllErrors = FALSE;
-
 
 //
 //  Global variables to hold compression statistics.
@@ -66,8 +61,6 @@ WCHAR  szGlobalDir[MAXPATHLEN];
 
 HDC   hDCdir = NULL;
 DWORD dxdir;
-
-
 
 //
 //  Forward Declarations.
@@ -105,9 +98,6 @@ OpenFileForCompress(
     PHANDLE phFile,
     LPTSTR szFile);
 
-
-
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  MKDir
@@ -115,27 +105,17 @@ OpenFileForCompress(
 //  Creates the given directory.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-DWORD MKDir(
-    LPTSTR pName,
-    LPTSTR pSrc)
+DWORD MKDir(LPWSTR pName, LPWSTR pSrc)
 {
-   DWORD dwErr = ERROR_SUCCESS;
+    DWORD dwErr = ERROR_SUCCESS;
 
-   if ((pSrc && *pSrc) ?
-         CreateDirectoryEx(pSrc, pName, NULL) :
-         CreateDirectory(pName, NULL))
-   {
-      ChangeFileSystem(FSC_MKDIR, pName, NULL);
-   }
-   else
-   {
-      dwErr = GetLastError();
-   }
+    if ((pSrc && *pSrc) ? CreateDirectoryEx(pSrc, pName, NULL) : CreateDirectory(pName, NULL))
+        ChangeFileSystem(FSC_MKDIR, pName, NULL);
+    else
+        dwErr = GetLastError();
 
-   return (dwErr);
+    return (dwErr);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -144,24 +124,17 @@ DWORD MKDir(
 //  Removes the given directory.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-DWORD RMDir(
-    LPTSTR pName)
+DWORD RMDir(LPWSTR pName)
 {
-   DWORD dwErr = 0;
+    DWORD dwErr = 0;
 
-   if (RemoveDirectory(pName))
-   {
-      ChangeFileSystem(FSC_RMDIR, pName, NULL);
-   }
-   else
-   {
-      dwErr = (WORD)GetLastError();
-   }
+    if (RemoveDirectory(pName))
+        ChangeFileSystem(FSC_RMDIR, pName, NULL);
+    else
+        dwErr = (WORD)GetLastError();
 
-   return (dwErr);
+    return (dwErr);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -170,29 +143,23 @@ DWORD RMDir(
 //  Sets the file attributes.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL WFSetAttr(
-    LPTSTR lpFile,
-    DWORD dwAttr)
+BOOL WFSetAttr(LPWSTR lpFile, DWORD dwAttr)
 {
-   BOOL bRet;
+    BOOL bRet;
 
-   //
-   //  Compression attribute is handled separately -
-   //  do not try to set it here.
-   //
-   dwAttr = dwAttr & ~(ATTR_COMPRESSED | ATTR_ENCRYPTED);
+    //
+    //  Compression attribute is handled separately -
+    //  do not try to set it here.
+    //
+    dwAttr = dwAttr & ~(ATTR_COMPRESSED | ATTR_ENCRYPTED);
 
-   bRet = SetFileAttributes(lpFile, dwAttr);
+    bRet = SetFileAttributes(lpFile, dwAttr);
 
-   if (bRet)
-   {
-      ChangeFileSystem(FSC_ATTRIBUTES, lpFile, NULL);
-   }
+    if (bRet)
+        ChangeFileSystem(FSC_ATTRIBUTES, lpFile, NULL);
 
-   return ( (BOOL)!bRet );
+    return ( (BOOL)!bRet );
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -201,9 +168,7 @@ BOOL WFSetAttr(
 //  Positions a window so that it is centered in its parent.
 //
 //////////////////////////////////////////////////////////////////////////////
-
-VOID CentreWindow(
-    HWND hwnd)
+VOID CentreWindow(HWND hwnd)
 {
     RECT    rect;
     RECT    rectParent;
@@ -225,16 +190,12 @@ VOID CentreWindow(
     //
     Style = GetWindowLongPtr(hwnd, GWL_STYLE);
     if ((Style & WS_CHILD) == 0)
-    {
         hwndParent = GetDesktopWindow();
-    }
     else
     {
         hwndParent = GetParent(hwnd);
         if (hwndParent == NULL)
-        {
             hwndParent = GetDesktopWindow();
-        }
     }
     GetWindowRect(hwndParent, &rectParent);
 
@@ -261,7 +222,6 @@ VOID CentreWindow(
     SetForegroundWindow(hwnd);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  wfProgressYield
@@ -279,7 +239,6 @@ VOID CentreWindow(
 //  to be processed by other Window Procedures.
 //
 /////////////////////////////////////////////////////////////////////////////
-
 VOID wfProgressYield()
 {
     MSG msg;
@@ -298,7 +257,6 @@ VOID wfProgressYield()
     }
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  DisplayUncompressProgress
@@ -311,16 +269,12 @@ VOID wfProgressYield()
 //  to this routine which determines which dialog box item to update.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-VOID DisplayUncompressProgress(
-    int iType)
+VOID DisplayUncompressProgress(int iType)
 {
     WCHAR szNum[30];
 
     if (!bShowProgress)
-    {
         return;
-    }
 
     switch (iType)
     {
@@ -329,9 +283,7 @@ VOID DisplayUncompressProgress(
         {
             SetDlgItemText(hDlgProgress, IDD_UNCOMPRESS_FILE, szGlobalFile);
             if (iType != PROGRESS_UPD_FILEANDDIR)
-            {
                 break;
-            }
 
             // else...fall through
         }
@@ -366,7 +318,6 @@ VOID DisplayUncompressProgress(
     wfProgressYield();
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  UncompressProgDlg
@@ -378,12 +329,7 @@ VOID DisplayUncompressProgress(
 //         DestroyWindow and NOT EndDialog
 //
 /////////////////////////////////////////////////////////////////////////////
-
-INT_PTR CALLBACK UncompressProgDlg(
-    HWND hDlg,
-    UINT nMsg,
-    WPARAM wParam,
-    LPARAM lParam)
+INT_PTR CALLBACK UncompressProgDlg(HWND hDlg, UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
     WCHAR szTemp[120];
     RECT  rect;
@@ -433,21 +379,16 @@ INT_PTR CALLBACK UncompressProgDlg(
                     break;
                 }
                 default :
-                {
                     return (FALSE);
-                }
             }
             break;
         }
         default :
-        {
             return (FALSE);
-        }
     }
 
     return (TRUE);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -462,8 +403,7 @@ INT_PTR CALLBACK UncompressProgDlg(
 //
 /////////////////////////////////////////////////////////////////////////////
 
-void DisplayCompressProgress(
-    int iType)
+void DisplayCompressProgress(int iType)
 {
     WCHAR szTemp[120];
     WCHAR szNum[30];
@@ -471,9 +411,7 @@ void DisplayCompressProgress(
 
 
     if (!bShowProgress)
-    {
         return;
-    }
 
     switch (iType)
     {
@@ -482,9 +420,7 @@ void DisplayCompressProgress(
         {
             SetDlgItemText(hDlgProgress, IDD_COMPRESS_FILE, szGlobalFile);
             if (iType != PROGRESS_UPD_FILEANDDIR)
-            {
                 break;
-            }
 
             // else...fall through
         }
@@ -512,9 +448,7 @@ void DisplayCompressProgress(
             AddCommasInternal(szNum, (DWORD)TotalFileCount);
             SetDlgItemText(hDlgProgress, IDD_COMPRESS_TFILES, szNum);
             if (iType != PROGRESS_UPD_FILENUMBERS)
-            {
                 break;
-            }
 
             // else...fall through
         }
@@ -524,9 +458,7 @@ void DisplayCompressProgress(
             wsprintf(szTemp, szSBytes, szNum);
             SetDlgItemText(hDlgProgress, IDD_COMPRESS_CSIZE, szTemp);
             if (iType != PROGRESS_UPD_FILENUMBERS)
-            {
                 break;
-            }
 
             // else...fall through
         }
@@ -536,9 +468,7 @@ void DisplayCompressProgress(
             wsprintf(szTemp, szSBytes, szNum);
             SetDlgItemText(hDlgProgress, IDD_COMPRESS_USIZE, szTemp);
             if (iType != PROGRESS_UPD_FILENUMBERS)
-            {
                 break;
-            }
 
             // else...fall through
         }
@@ -562,9 +492,7 @@ void DisplayCompressProgress(
                     Percentage.HighPart = 0;
                 }
                 else
-                {
                     Percentage.LowPart = 100 - Percentage.LowPart;
-                }
             }
             else
             {
@@ -585,7 +513,6 @@ void DisplayCompressProgress(
     wfProgressYield();
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  CompressProgDlg
@@ -597,12 +524,7 @@ void DisplayCompressProgress(
 //         and NOT EndDialog
 //
 /////////////////////////////////////////////////////////////////////////////
-
-INT_PTR CALLBACK CompressProgDlg(
-    HWND hDlg,
-    UINT nMsg,
-    WPARAM wParam,
-    LPARAM lParam)
+INT_PTR CALLBACK CompressProgDlg(HWND hDlg, UINT nMsg, WPARAM wParam, LPARAM lParam)
 {
     WCHAR szTemp[120];
     RECT  rect;
@@ -658,21 +580,16 @@ INT_PTR CALLBACK CompressProgDlg(
                     break;
                 }
                 default :
-                {
                     return (FALSE);
-                }
             }
             break;
         }
         default :
-        {
             return (FALSE);
-        }
     }
 
     return (TRUE);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -683,13 +600,7 @@ INT_PTR CALLBACK CompressProgDlg(
 //  Display progress and statistics during compression.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL WFCheckCompress(
-    HWND hDlg,
-    LPTSTR szNameSpec,
-    DWORD dwNewAttrs,
-    BOOL bPropertyDlg,
-    BOOL *bIgnoreAll)
+BOOL WFCheckCompress(HWND hDlg, LPTSTR szNameSpec, DWORD dwNewAttrs,BOOL bPropertyDlg, BOOL *bIgnoreAll)
 {
     DWORD   dwFlags, dwAttribs;
     WCHAR   szTitle[MAXTITLELEN];
@@ -699,7 +610,6 @@ BOOL WFCheckCompress(
     BOOL    bIsDir;
     BOOL    bRet = TRUE;
     HCURSOR hCursor;
-
 
     //
     //  Make sure we're not in the middle of another compression operation.
@@ -737,9 +647,8 @@ BOOL WFCheckCompress(
     //  Show the hour glass cursor.
     //
     if (hCursor = LoadCursor(NULL, IDC_WAIT))
-    {
         hCursor = SetCursor(hCursor);
-    }
+
     ShowCursor(TRUE);
 
     //
@@ -993,9 +902,8 @@ CancelCompress:
     //  Reset the cursor.
     //
     if (hCursor)
-    {
         SetCursor(hCursor);
-    }
+
     ShowCursor(FALSE);
 
     //
@@ -1010,7 +918,6 @@ CancelCompress:
     return (bRet);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  CompressFile
@@ -1018,17 +925,12 @@ CancelCompress:
 //  Compresses a single file.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL CompressFile(
-    HANDLE Handle,
-    LPTSTR FileSpec,
-    PWIN32_FIND_DATA FindData)
+BOOL CompressFile(HANDLE Handle, LPWSTR FileSpec, PWIN32_FIND_DATA FindData)
 {
     USHORT State;
     ULONG Length;
     LARGE_INTEGER FileSize;
     LARGE_INTEGER CompressedSize;
-
 
     //
     //  Print out the file name and then do the Ioctl to compress the
@@ -1070,7 +972,6 @@ BOOL CompressFile(
     return (TRUE);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  WFDoCompress
@@ -1078,20 +979,15 @@ BOOL CompressFile(
 //  Compresses a directory and its subdirectories (if necessary).
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL WFDoCompress(
-    HWND hDlg,
-    LPTSTR DirectorySpec,
-    LPTSTR FileSpec)
+BOOL WFDoCompress(HWND hDlg, LPWSTR DirectorySpec, LPWSTR FileSpec)
 {
-    LPTSTR DirectorySpecEnd;
+    LPWSTR DirectorySpecEnd;
     HANDLE FileHandle;
     USHORT State;
     ULONG  Length;
     HANDLE FindHandle;
     WIN32_FIND_DATA FindData;
     int MBRet;
-
 
     //
     //  If the file spec is null, then set the compression bit for
@@ -1105,9 +1001,7 @@ BOOL WFDoCompress(
 DoCompressRetryCreate:
 
         if (!OpenFileForCompress(&FileHandle, DirectorySpec))
-        {
             goto DoCompressError;
-        }
 
 DoCompressRetryDevIo:
 
@@ -1129,13 +1023,9 @@ DoCompressError:
                                                DirectorySpec,
                                                &FileHandle );
                 if (MBRet == WF_RETRY_CREATE)
-                {
                     goto DoCompressRetryCreate;
-                }
                 else if (MBRet == WF_RETRY_DEVIO)
-                {
                     goto DoCompressRetryDevIo;
-                }
                 else if (MBRet == IDABORT)
                 {
                     //
@@ -1196,9 +1086,7 @@ DoCompressError:
             //  Make sure the user hasn't hit cancel.
             //
             if (bShowProgress && !hDlgProgress)
-            {
                 break;
-            }
 
             //
             //  Skip over the . and .. entries.
@@ -1244,9 +1132,7 @@ DoCompressError:
 CompressFileRetryCreate:
 
                 if (!OpenFileForCompress(&FileHandle, DirectorySpec))
-                {
                     goto CompressFileError;
-                }
 
 CompressFileRetryDevIo:
 
@@ -1256,20 +1142,15 @@ CompressFileRetryDevIo:
                 if (!CompressFile(FileHandle, DirectorySpec, &FindData))
                 {
 CompressFileError:
-
                     if (!bIgnoreAllErrors)
                     {
                         MBRet = CompressErrMessageBox( hDlg,
                                                        DirectorySpec,
                                                        &FileHandle );
                         if (MBRet == WF_RETRY_CREATE)
-                        {
                             goto CompressFileRetryCreate;
-                        }
                         else if (MBRet == WF_RETRY_DEVIO)
-                        {
                             goto CompressFileRetryDevIo;
-                        }
                         else if (MBRet == IDABORT)
                         {
                             //
@@ -1354,7 +1235,6 @@ CompressFileError:
     return (TRUE);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  UncompressFile
@@ -1362,14 +1242,10 @@ CompressFileError:
 //  Uncompresses a single file.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL UncompressFile(
-    HANDLE Handle,
-    PWIN32_FIND_DATA FindData)
+BOOL UncompressFile(HANDLE Handle, PWIN32_FIND_DATA FindData)
 {
     USHORT State;
     ULONG Length;
-
 
     //
     //  Print out the file name and then do the Ioctl to uncompress the
@@ -1400,7 +1276,6 @@ BOOL UncompressFile(
     return (TRUE);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  WFDoUncompress
@@ -1408,11 +1283,7 @@ BOOL UncompressFile(
 //  Uncompresses a directory and its subdirectories (if necessary).
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL WFDoUncompress(
-    HWND hDlg,
-    LPTSTR DirectorySpec,
-    LPTSTR FileSpec)
+BOOL WFDoUncompress(HWND hDlg, LPWSTR DirectorySpec, LPWSTR FileSpec)
 {
     LPTSTR DirectorySpecEnd;
     HANDLE FileHandle;
@@ -1435,9 +1306,7 @@ BOOL WFDoUncompress(
 DoUncompressRetryCreate:
 
         if (!OpenFileForCompress(&FileHandle, DirectorySpec))
-        {
             goto DoUncompressError;
-        }
 
 DoUncompressRetryDevIo:
 
@@ -1459,13 +1328,9 @@ DoUncompressError:
                                                DirectorySpec,
                                                &FileHandle );
                 if (MBRet == WF_RETRY_CREATE)
-                {
                     goto DoUncompressRetryCreate;
-                }
                 else if (MBRet == WF_RETRY_DEVIO)
-                {
                     goto DoUncompressRetryDevIo;
-                }
                 else if (MBRet == IDABORT)
                 {
                     //
@@ -1522,9 +1387,7 @@ DoUncompressError:
             //  Make sure the user hasn't hit cancel.
             //
             if (bShowProgress && !hDlgProgress)
-            {
                 break;
-            }
 
             //
             //  Skip over the . and .. entries.
@@ -1553,9 +1416,7 @@ DoUncompressError:
 UncompressFileRetryCreate:
 
                 if (!OpenFileForCompress(&FileHandle, DirectorySpec))
-                {
                     goto UncompressFileError;
-                }
 
 UncompressFileRetryDevIo:
 
@@ -1572,13 +1433,9 @@ UncompressFileError:
                                                        DirectorySpec,
                                                        &FileHandle );
                         if (MBRet == WF_RETRY_CREATE)
-                        {
                             goto UncompressFileRetryCreate;
-                        }
                         else if (MBRet == WF_RETRY_DEVIO)
-                        {
                             goto UncompressFileRetryDevIo;
-                        }
                         else if (MBRet == IDABORT)
                         {
                             //
@@ -1663,7 +1520,6 @@ UncompressFileError:
     return (TRUE);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  GetRootPath
@@ -1672,19 +1528,12 @@ UncompressFileError:
 //  because the first char is not the drive letter.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL GetRootPath(
-    LPTSTR szPath,
-    LPTSTR szReturn)
+BOOL GetRootPath(LPWSTR szPath, LPWSTR szReturn)
 {
     if (!QualifyPath(szPath))
-    {
         return (FALSE);
-    }
     else
-    {
         szReturn[0] = TEXT('\0');
-    }
 
     //
     //  Return the correct drive letter by taking into account
@@ -1699,7 +1548,6 @@ BOOL GetRootPath(
     return (TRUE);
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  RedrawAllTreeWindows
@@ -1708,7 +1556,6 @@ BOOL GetRootPath(
 //  it will be redrawn.
 //
 /////////////////////////////////////////////////////////////////////////////
-
 extern VOID GetTreePath(PDNODE pNode, register LPTSTR szDest);
 
 VOID RedrawAllTreeWindows()
@@ -1720,9 +1567,7 @@ VOID RedrawAllTreeWindows()
     WCHAR szPathName[MAXPATHLEN * 2];
 
 
-    for (hwnd = GetWindow(hwndMDIClient, GW_CHILD);
-         hwnd;
-         hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+    for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
     {
        if (hwndTree = HasTreeWindow(hwnd))
        {
@@ -1742,16 +1587,13 @@ VOID RedrawAllTreeWindows()
                //
                GetTreePath(pNode, szPathName);
                if ((dwAttribs = GetFileAttributes(szPathName)) != INVALID_FILE_ATTRIBUTES)
-               {
                    pNode->dwAttribs = dwAttribs;
-               }
            }
 
            InvalidateRect(hwndLB, NULL, FALSE);
        }
     }
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1764,14 +1606,9 @@ VOID RedrawAllTreeWindows()
 //        chosen by the user.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-int CompressErrMessageBox(
-    HWND hwndActive,
-    LPTSTR szFile,
-    PHANDLE phFile)
+int CompressErrMessageBox(HWND hwndActive, LPWSTR szFile, PHANDLE phFile)
 {
     int rc;
-
 
     //
     //  Put up the error message box - ABORT, RETRY, IGNORE, IGNORE ALL.
@@ -1788,13 +1625,9 @@ int CompressErrMessageBox(
     if (rc == IDRETRY)
     {
         if (*phFile == INVALID_HANDLE_VALUE)
-        {
             return (WF_RETRY_CREATE);
-        }
         else
-        {
             return (WF_RETRY_DEVIO);
-        }
     }
     else
     {
@@ -1813,7 +1646,6 @@ int CompressErrMessageBox(
     }
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 //  CompressErrDialogProc
@@ -1822,12 +1654,7 @@ int CompressErrMessageBox(
 //  Ignore All when an error occurs during compression.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-INT_PTR CALLBACK CompressErrDialogProc(
-    HWND hDlg,
-    UINT uMsg,
-    WPARAM wParam,
-    LPARAM lParam)
+INT_PTR CALLBACK CompressErrDialogProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     WORD Id = TRUE;
 
@@ -1867,20 +1694,15 @@ INT_PTR CALLBACK CompressErrDialogProc(
                     break;
                 }
                 default :
-                {
                     return (FALSE);
-                }
             }
             break;
         }
         default :
-        {
             return (FALSE);
-        }
     }
     return (Id);
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1893,10 +1715,7 @@ INT_PTR CALLBACK CompressErrDialogProc(
 //  file has been compressed.
 //
 /////////////////////////////////////////////////////////////////////////////
-
-BOOL OpenFileForCompress(
-    PHANDLE phFile,
-    LPTSTR szFile)
+BOOL OpenFileForCompress(PHANDLE phFile, LPWSTR szFile)
 {
     HANDLE hAttr;
     BY_HANDLE_FILE_INFORMATION fi;
@@ -1920,9 +1739,7 @@ BOOL OpenFileForCompress(
     }
 
     if (GetLastError() != ERROR_ACCESS_DENIED)
-    {
         return (FALSE);
-    }
 
     //
     //  Try to open the file - READ_ATTRIBUTES | WRITE_ATTRIBUTES.
@@ -1983,9 +1800,7 @@ BOOL OpenFileForCompress(
     //  the readonly attribute turned off, then fail.
     //
     if (*phFile == INVALID_HANDLE_VALUE)
-    {
         return (FALSE);
-    }
 
     //
     //  Turn the READONLY attribute back ON.
@@ -2003,4 +1818,3 @@ BOOL OpenFileForCompress(
     //
     return (TRUE);
 }
-

@@ -13,44 +13,43 @@
 
 // Warning: assumes bytes per sector < 2 gigs
 
-VOID
-GetDiskSpace(DRIVE drive,
-   PLARGE_INTEGER pqFreeSpace,
-   PLARGE_INTEGER pqTotalSpace)
+VOID GetDiskSpace(DRIVE drive,
+                  PLARGE_INTEGER pqFreeSpace,
+                  PLARGE_INTEGER pqTotalSpace)
 {
-   DWORD dwSectorsPerCluster;
-   DWORD dwBytesPerSector;
-   DWORD dwFreeClusters;
-   DWORD dwTotalClusters;
+    DWORD dwSectorsPerCluster;
+    DWORD dwBytesPerSector;
+    DWORD dwFreeClusters;
+    DWORD dwTotalClusters;
 
-   WCHAR szDriveRoot[] = SZ_ACOLONSLASH;
+    WCHAR szDriveRoot[] = SZ_ACOLONSLASH;
 
-   DRIVESET(szDriveRoot, drive);
+    DRIVESET(szDriveRoot, drive);
 
-   if (GetDiskFreeSpace(szDriveRoot,
-      &dwSectorsPerCluster,
-      &dwBytesPerSector,
-      &dwFreeClusters,
-      &dwTotalClusters)) {
-
-      *pqFreeSpace = TriMultiply(dwFreeClusters,dwSectorsPerCluster,dwBytesPerSector);
-      *pqTotalSpace= TriMultiply(dwTotalClusters,dwSectorsPerCluster,dwBytesPerSector);
-
-   } else {
-      LARGE_INTEGER_NULL(*pqFreeSpace);
-      LARGE_INTEGER_NULL(*pqTotalSpace);
-   }
+    if (GetDiskFreeSpace(szDriveRoot,
+        &dwSectorsPerCluster,
+        &dwBytesPerSector,
+        &dwFreeClusters,
+        &dwTotalClusters))
+    {
+        *pqFreeSpace = TriMultiply(dwFreeClusters,dwSectorsPerCluster,dwBytesPerSector);
+        *pqTotalSpace= TriMultiply(dwTotalClusters,dwSectorsPerCluster,dwBytesPerSector);
+    }
+    else
+    {
+        LARGE_INTEGER_NULL(*pqFreeSpace);
+        LARGE_INTEGER_NULL(*pqTotalSpace);
+    }
 }
 
 
-INT
-ChangeVolumeLabel(DRIVE drive, LPTSTR lpNewVolName)
+INT ChangeVolumeLabel(DRIVE drive, LPWSTR lpNewVolName)
 {
-   WCHAR szDrive[] = SZ_ACOLON;
+    WCHAR szDrive[] = SZ_ACOLON;
 
-   DRIVESET(szDrive,drive);
+    DRIVESET(szDrive,drive);
 
-   return (*lpfnSetLabel)(szDrive, lpNewVolName);
+    return (*lpfnSetLabel)(szDrive, lpNewVolName);
 }
 
 
@@ -59,58 +58,56 @@ ChangeVolumeLabel(DRIVE drive, LPTSTR lpNewVolName)
 //  (To assure correct ] ending!)
 //
 
-DWORD
-GetVolumeLabel(DRIVE drive, LPTSTR* ppszVol, BOOL bBrackets)
+DWORD GetVolumeLabel(DRIVE drive, LPWSTR* ppszVol, BOOL bBrackets)
 {
-   U_VolInfo(drive);
+    U_VolInfo(drive);
 
-   *ppszVol = aDriveInfo[drive].szVolNameMinusFour+4;
+    *ppszVol = aDriveInfo[drive].szVolNameMinusFour+4;
 
-   if (GETRETVAL(VolInfo,drive) || !**ppszVol) {
+    if (GETRETVAL(VolInfo,drive) || !**ppszVol)
+        return GETRETVAL(VolInfo,drive);
 
-      return GETRETVAL(VolInfo,drive);
-   }
+    (*ppszVol)[aDriveInfo[drive].dwVolNameMax] = CHAR_NULL;
 
-   (*ppszVol)[aDriveInfo[drive].dwVolNameMax] = CHAR_NULL;
+    if (bBrackets)
+    {
+        (*ppszVol)--;
+        (*ppszVol)[0] = CHAR_OPENBRACK;
 
-   if (bBrackets) {
-
-      (*ppszVol)--;
-      (*ppszVol)[0] = CHAR_OPENBRACK;
-
-      lstrcat(*ppszVol, SZ_CLOSEBRACK);
-   }
-   return ERROR_SUCCESS;
+        lstrcat(*ppszVol, SZ_CLOSEBRACK);
+    }
+    return ERROR_SUCCESS;
 }
 
-
-DWORD
-FillVolumeInfo(DRIVE drive, LPTSTR lpszVolName, PDWORD pdwVolumeSerialNumber,
-   PDWORD pdwMaximumComponentLength, PDWORD pdwFileSystemFlags,
-   LPTSTR lpszFileSysName)
+DWORD FillVolumeInfo(DRIVE drive,
+                     LPTSTR lpszVolName,
+                     PDWORD pdwVolumeSerialNumber,
+                     PDWORD pdwMaximumComponentLength,
+                     PDWORD pdwFileSystemFlags,
+                     LPWSTR lpszFileSysName)
 {
-   WCHAR szDrive[] = SZ_ACOLONSLASH;
-   PDRIVEINFO pDriveInfo = &aDriveInfo[drive];
+    WCHAR szDrive[] = SZ_ACOLONSLASH;
+    PDRIVEINFO pDriveInfo = &aDriveInfo[drive];
 
-   DRIVESET(szDrive,drive);
+    DRIVESET(szDrive,drive);
 
-   if (!(GetVolumeInformation(szDrive,
-      lpszVolName, COUNTOF(pDriveInfo->szVolNameMinusFour)-4,
-      pdwVolumeSerialNumber,
-      pdwMaximumComponentLength,
-      pdwFileSystemFlags,
-      lpszFileSysName, COUNTOF(pDriveInfo->szFileSysName)))) {
+    if (!(GetVolumeInformation(szDrive,
+        lpszVolName, COUNTOF(pDriveInfo->szVolNameMinusFour)-4,
+        pdwVolumeSerialNumber,
+        pdwMaximumComponentLength,
+        pdwFileSystemFlags,
+        lpszFileSysName, COUNTOF(pDriveInfo->szFileSysName))))
+    {
+        lpszVolName[0] = CHAR_NULL;
 
-      lpszVolName[0] = CHAR_NULL;
+        *pdwVolumeSerialNumber = 0;
+        *pdwMaximumComponentLength = 0;
+        *pdwFileSystemFlags = 0;
 
-      *pdwVolumeSerialNumber = 0;
-      *pdwMaximumComponentLength = 0;
-      *pdwFileSystemFlags = 0;
+        lpszFileSysName[0] = CHAR_NULL;
 
-      lpszFileSysName[0] = CHAR_NULL;
+        return GetLastError();
+    }
 
-      return GetLastError();
-   }
-
-   return ERROR_SUCCESS;
+    return ERROR_SUCCESS;
 }

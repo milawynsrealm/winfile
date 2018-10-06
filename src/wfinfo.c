@@ -72,51 +72,51 @@ DWORD adwAltNameTrans[MAX_ALTNAME] = {
 VOID
 M_Info(VOID)
 {
-   InitializeCriticalSection(&CriticalSectionUpdate);
+    InitializeCriticalSection(&CriticalSectionUpdate);
 }
 
 VOID
 D_Info(VOID)
 {
-   DeleteCriticalSection(&CriticalSectionUpdate);
+    DeleteCriticalSection(&CriticalSectionUpdate);
 }
 
 U_HEAD(Type)
 
-   WCHAR szDrive[] = SZ_ACOLONSLASH;
-   UINT uType;
+    WCHAR szDrive[] = SZ_ACOLONSLASH;
+    UINT uType;
 
-   DRIVESET(szDrive, drive);
+    DRIVESET(szDrive, drive);
 
-   IF_READ(Type)
-      uType = GetDriveType(szDrive);
+    IF_READ(Type)
+        uType = GetDriveType(szDrive);
 
-      ENTER_MODIFY(Type)
+        ENTER_MODIFY(Type)
 
-         pDriveInfo->uType = uType;
+            pDriveInfo->uType = uType;
 
-      EXIT_MODIFY(Type)
+        EXIT_MODIFY(Type)
 
-   END_IF(Type)
+    END_IF(Type)
 
 U_CLOSE(Type)
 
 U_HEAD(Space)
 
-   LARGE_INTEGER qFreeSpace;
-   LARGE_INTEGER qTotalSpace;
+    LARGE_INTEGER qFreeSpace;
+    LARGE_INTEGER qTotalSpace;
 
-   IF_READ(Space)
-      GetDiskSpace(drive, &qFreeSpace, &qTotalSpace);
+    IF_READ(Space)
+        GetDiskSpace(drive, &qFreeSpace, &qTotalSpace);
 
-      ENTER_MODIFY(Space)
+        ENTER_MODIFY(Space)
 
-         aDriveInfo[drive].qFreeSpace = qFreeSpace;
-         aDriveInfo[drive].qTotalSpace= qTotalSpace;
+            aDriveInfo[drive].qFreeSpace = qFreeSpace;
+            aDriveInfo[drive].qTotalSpace= qTotalSpace;
 
-      EXIT_MODIFY(Space)
+        EXIT_MODIFY(Space)
 
-   END_IF(Space)
+    END_IF(Space)
 
 U_CLOSE(Space)
 
@@ -212,218 +212,202 @@ U_CLOSE(VolInfo)
 
 U_HEAD(NetCon)
 
-   DWORD dwSize;
-   WNET_CONNECTIONINFO * lpConnectInfo = pDriveInfo->lpConnectInfo;
+    DWORD dwSize;
+    WNET_CONNECTIONINFO * lpConnectInfo = pDriveInfo->lpConnectInfo;
 
-   WCHAR szDrive[] = SZ_ACOLON;
-   DWORD dwRetVal;
+    WCHAR szDrive[] = SZ_ACOLON;
+    DWORD dwRetVal;
 
-   //
-   // If not a remote drive, just return.
-   //
-   if (!IsRemoteDrive(drive))
-      goto DoneSafe;
+    //
+    // If not a remote drive, just return.
+    //
+    if (!IsRemoteDrive(drive))
+        goto DoneSafe;
 
-   if (!WAITNET_LOADED) {
-      SET_RETVAL(NetCon, ERROR_DLL_INIT_FAILED);
-      goto DoneSafe;
-   }
+    if (!WAITNET_LOADED)
+    {
+        SET_RETVAL(NetCon, ERROR_DLL_INIT_FAILED);
+        goto DoneSafe;
+    }
 
-   //
-   // If remembered connection, simply validate and return
-   //
-   if (pDriveInfo->bRemembered)
-      goto DoneSafe;
+    //
+    // If remembered connection, simply validate and return
+    //
+    if (pDriveInfo->bRemembered)
+        goto DoneSafe;
 
-   DRIVESET(szDrive,drive);
+    DRIVESET(szDrive,drive);
 
-   IF_READ(NetCon)
+    IF_READ(NetCon)
 
-      ENTER_MODIFY(NetCon)
+        ENTER_MODIFY(NetCon)
 
-         // If error, zero it out!
-         // DRIVE_INFO_NAME_HEADER characters before string must be allocated!
+            // If error, zero it out!
+            // DRIVE_INFO_NAME_HEADER characters before string must be allocated!
 
-         dwSize = pDriveInfo->dwConnectInfoMax;
+            dwSize = pDriveInfo->dwConnectInfoMax;
 
-         if (!dwSize)
-            dwSize = REMOTE_DEFAULT_SIZE;
+            if (!dwSize)
+                dwSize = REMOTE_DEFAULT_SIZE;
 
-         if (!lpConnectInfo) {
+            if (!lpConnectInfo)
+            {
 Retry:
-            lpConnectInfo = (WNET_CONNECTIONINFO *) LocalAlloc(LPTR, dwSize);
-            pDriveInfo->lpConnectInfo = lpConnectInfo;
-         }
+                lpConnectInfo = (WNET_CONNECTIONINFO *) LocalAlloc(LPTR, dwSize);
+                pDriveInfo->lpConnectInfo = lpConnectInfo;
+            }
 
-         if (!lpConnectInfo) {
+            if (!lpConnectInfo)
+            {
+                pDriveInfo->dwConnectInfoMax = 0;
+                SET_RETVAL(NetCon,ERROR_NOT_ENOUGH_MEMORY);
 
-            pDriveInfo->dwConnectInfoMax = 0;
-            SET_RETVAL(NetCon,ERROR_NOT_ENOUGH_MEMORY);
+                //
+                // Go ahead and validate
+                //
+
+                goto Done;
+            }
+
+            pDriveInfo->dwConnectInfoMax = dwSize;
+
+            dwRetVal = WNetGetConnection2(szDrive, lpConnectInfo, &dwSize);
+
+            if (ERROR_MORE_DATA == dwRetVal)
+            {
+                LocalFree((HLOCAL)lpConnectInfo);
+                goto Retry;
+            }
+
+            SET_RETVAL(NetCon,dwRetVal);
 
             //
-            // Go ahead and validate
+            // Now get the multiline version
             //
-
-            goto Done;
-         }
-
-         pDriveInfo->dwConnectInfoMax = dwSize;
-
-         dwRetVal = WNetGetConnection2(szDrive, lpConnectInfo, &dwSize);
-
-         if (ERROR_MORE_DATA == dwRetVal) {
-
-            LocalFree((HLOCAL)lpConnectInfo);
-            goto Retry;
-         }
-
-         SET_RETVAL(NetCon,dwRetVal);
-
-         //
-         // Now get the multiline version
-         //
-         NetCon_UpdateAltName(drive, dwRetVal);
+            NetCon_UpdateAltName(drive, dwRetVal);
 
 Done:
+        EXIT_MODIFY(NetCon)
 
-   EXIT_MODIFY(NetCon)
-
-   END_IF(NetCon)
+    END_IF(NetCon)
 DoneSafe:
 U_CLOSE(NetCon)
 
-
 D_PROTO(NetCon)
 {
-   INT i;
-   DRIVE drive;
-   PDRIVEINFO pDriveInfo;
+    INT i;
+    DRIVE drive;
+    PDRIVEINFO pDriveInfo;
 
-   for (drive = 0, pDriveInfo = aDriveInfo;
+    for (drive = 0, pDriveInfo = aDriveInfo;
         drive < MAX_DRIVES;
         drive++, pDriveInfo++)
-   {
-      if (pDriveInfo->lpConnectInfo)
-      {
-         LocalFree((HLOCAL)pDriveInfo->lpConnectInfo);
-      }
+    {
+        if (pDriveInfo->lpConnectInfo)
+            LocalFree((HLOCAL)pDriveInfo->lpConnectInfo);
 
-      for (i = 0; i < MAX_ALTNAME; i++)
-      {
-         if (pDriveInfo->lpszRemoteNameMinusFour[i])
-         {
-            LocalFree((HLOCAL)pDriveInfo->lpszRemoteNameMinusFour[i]);
-         }
-      }
-   }
-   D_Destroy(NetCon);
+        for (i = 0; i < MAX_ALTNAME; i++)
+            if (pDriveInfo->lpszRemoteNameMinusFour[i])
+                LocalFree((HLOCAL)pDriveInfo->lpszRemoteNameMinusFour[i]);
+    }
+    D_Destroy(NetCon);
 }
 
-
-INT
-NetCon_UpdateAltName(DRIVE drive, DWORD dwRetVal)
+INT NetCon_UpdateAltName(DRIVE drive, DWORD dwRetVal)
 {
-   PDRIVEINFO pDriveInfo = &aDriveInfo[drive];
-   LPTSTR lpszBuf;
-   DWORD dwSize;
-   WNET_CONNECTIONINFO * lpConnectInfo = pDriveInfo->lpConnectInfo;
-   DWORD i;
+    PDRIVEINFO pDriveInfo = &aDriveInfo[drive];
+    LPWSTR lpszBuf;
+    DWORD dwSize;
+    WNET_CONNECTIONINFO * lpConnectInfo = pDriveInfo->lpConnectInfo;
+    DWORD i;
 
-   for (i = 0; i < MAX_ALTNAME; i++) {
+    for (i = 0; i < MAX_ALTNAME; i++)
+    {
+        //
+        // If dwRetVal is in error state,
+        // fail for all.
+        //
+        if (dwRetVal)
+            break;
 
-      //
-      // If dwRetVal is in error state,
-      // fail for all.
-      //
-      if (dwRetVal)
-         break;
+        lpszBuf = pDriveInfo->lpszRemoteNameMinusFour[i];
+        dwSize = pDriveInfo->dwRemoteNameMax[i];
 
-      lpszBuf = pDriveInfo->lpszRemoteNameMinusFour[i];
-      dwSize = pDriveInfo->dwRemoteNameMax[i];
+        if (!dwSize)
+            dwSize = REMOTE_DEFAULT_SIZE;
 
-      if (!dwSize)
-         dwSize = REMOTE_DEFAULT_SIZE;
-
-      if (!lpszBuf) {
+        if (!lpszBuf)
+        {
 Retry:
-         lpszBuf = (LPTSTR) LocalAlloc(LPTR, ByteCountOf(dwSize + DRIVE_INFO_NAME_HEADER));
-      }
+            lpszBuf = (LPTSTR) LocalAlloc(LPTR, ByteCountOf(dwSize + DRIVE_INFO_NAME_HEADER));
+        }
 
+        pDriveInfo->lpszRemoteNameMinusFour[i] = lpszBuf;
 
-      pDriveInfo->lpszRemoteNameMinusFour[i] = lpszBuf;
+        if (!lpszBuf)
+        {
+            pDriveInfo->dwRemoteNameMax[i]=0;
 
-      if (!lpszBuf) {
+            dwRetVal = ERROR_NOT_ENOUGH_MEMORY;
+            goto Done;
+        }
 
-         pDriveInfo->dwRemoteNameMax[i]=0;
+        dwRetVal = WNetFormatNetworkNameW(lpConnectInfo->lpProvider,
+            lpConnectInfo->lpRemoteName,
+            lpszBuf + DRIVE_INFO_NAME_HEADER,
+            &dwSize,
+            adwAltNameTrans[i],
+            cchDriveListMax);
 
-         dwRetVal = ERROR_NOT_ENOUGH_MEMORY;
-         goto Done;
-      }
+        if (ERROR_MORE_DATA == dwRetVal)
+        {
+            //
+            // If need more space, free buffer and retry
+            // (dwSize is updated by WNetFormatNetworkName)
+            //
 
-      dwRetVal = WNetFormatNetworkNameW(lpConnectInfo->lpProvider,
-         lpConnectInfo->lpRemoteName,
-         lpszBuf + DRIVE_INFO_NAME_HEADER,
-         &dwSize,
-         adwAltNameTrans[i],
-         cchDriveListMax);
+            LocalFree((HLOCAL)lpszBuf);
+            goto Retry;
+        }
 
-      if (ERROR_MORE_DATA == dwRetVal) {
+        if (dwRetVal)
+            break;
 
-         //
-         // If need more space, free buffer and retry
-         // (dwSize is updated by WNetFormatNetworkName)
-         //
-
-         LocalFree((HLOCAL)lpszBuf);
-         goto Retry;
-      }
-
-      if (dwRetVal) {
-         break;
-      }
-
-      NetCon_UpdateLines(drive, i);
-   }
+        NetCon_UpdateLines(drive, i);
+    }
 Done:
-   if (dwRetVal)
-   {
-      //
-      // Set everything to 1!
-      //
-      for (i = 0; i < MAX_ALTNAME; i++)
-      {
-         pDriveInfo->dwLines[i] = 1;
-      }
-   }
-   pDriveInfo->dwAltNameError = dwRetVal;
-   return dwRetVal;
+    if (dwRetVal)
+    {
+        //
+        // Set everything to 1!
+        //
+        for (i = 0; i < MAX_ALTNAME; i++)
+            pDriveInfo->dwLines[i] = 1;
+    }
+    pDriveInfo->dwAltNameError = dwRetVal;
+    return dwRetVal;
 }
 
-
-
-VOID
-NetCon_UpdateLines(DRIVE drive, DWORD dwType)
+VOID NetCon_UpdateLines(DRIVE drive, DWORD dwType)
 {
-   LPTSTR lpNext;
-   DWORD dwLines=0;
+    LPWSTR lpNext;
+    DWORD dwLines=0;
 
-   //
-   // Scan for the number of \n in the text
-   //
+    //
+    // Scan for the number of \n in the text
+    //
 
-   lpNext = aDriveInfo[drive].lpszRemoteNameMinusFour[dwType] +
-      DRIVE_INFO_NAME_HEADER;
+    lpNext = aDriveInfo[drive].lpszRemoteNameMinusFour[dwType] +
+        DRIVE_INFO_NAME_HEADER;
 
-   do
-   {
-      dwLines++;
-      lpNext = StrChr(lpNext, CHAR_NEWLINE);
-   } while (lpNext++);
+    do
+    {
+        dwLines++;
+        lpNext = StrChr(lpNext, CHAR_NEWLINE);
+    } while (lpNext++);
 
-   aDriveInfo[drive].dwLines[dwType] = dwLines;
+    aDriveInfo[drive].dwLines[dwType] = dwLines;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -453,7 +437,6 @@ struct _DOC_BUCKET {
    LPTSTR lpszFI;
 } DOCBUCKET;
 
-
 /////////////////////////////////////////////////////////////////////
 //
 // Name:     DocConstruct
@@ -472,14 +455,10 @@ struct _DOC_BUCKET {
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-PPDOCBUCKET
-DocConstruct(VOID)
+PPDOCBUCKET DocConstruct(VOID)
 {
-   return (PPDOCBUCKET) LocalAlloc(LPTR, sizeof(PDOCBUCKET)*DOCBUCKETMAX);
+    return (PPDOCBUCKET) LocalAlloc(LPTR, sizeof(PDOCBUCKET)*DOCBUCKETMAX);
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -499,31 +478,27 @@ DocConstruct(VOID)
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-DocDestruct(PPDOCBUCKET ppDocBucket)
+VOID DocDestruct(PPDOCBUCKET ppDocBucket)
 {
-   INT i;
-   PDOCBUCKET pDocBucket;
-   PDOCBUCKET pDocBucketNext;
+    INT i;
+    PDOCBUCKET pDocBucket;
+    PDOCBUCKET pDocBucketNext;
 
-   if (!ppDocBucket)
-      return;
+    if (!ppDocBucket)
+        return;
 
-   for(i=0; i<DOCBUCKETMAX; i++) {
-
-      for(pDocBucket = ppDocBucket[i]; pDocBucket;
-         pDocBucket=pDocBucketNext) {
-
-         pDocBucketNext = pDocBucket->next;
-       	 DestroyIcon(pDocBucket->hIcon);
-         LocalFree((HLOCAL)pDocBucket->lpszFI);
-         LocalFree((HLOCAL)pDocBucket);
-      }
-   }
-   LocalFree(ppDocBucket);
+    for(i=0; i<DOCBUCKETMAX; i++)
+    {
+        for(pDocBucket = ppDocBucket[i]; pDocBucket; pDocBucket=pDocBucketNext)
+        {
+            pDocBucketNext = pDocBucket->next;
+            DestroyIcon(pDocBucket->hIcon);
+            LocalFree((HLOCAL)pDocBucket->lpszFI);
+            LocalFree((HLOCAL)pDocBucket);
+        }
+    }
+    LocalFree(ppDocBucket);
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -543,12 +518,9 @@ DocDestruct(PPDOCBUCKET ppDocBucket)
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-RemoveEndQuote(
-    LPTSTR lpszExt)
+VOID RemoveEndQuote(LPWSTR lpszExt)
 {
-    LPTSTR ptr;
+    LPWSTR ptr;
 
     if (lpszExt)
     {
@@ -584,61 +556,53 @@ RemoveEndQuote(
 // Notes:    Stores everything in lowercase
 //
 /////////////////////////////////////////////////////////////////////
-
-INT
-DocInsert(PPDOCBUCKET ppDocBucket,
-         LPTSTR lpszExt,
-         LPTSTR lpszFileIcon)
+INT DocInsert(PPDOCBUCKET ppDocBucket, LPWSTR lpszExt, LPWSTR lpszFileIcon)
 {
-   PDOCBUCKET pDocBucket;
-   INT iBucket;
-   WCHAR szExt[EXTSIZ];
+    PDOCBUCKET pDocBucket;
+    INT iBucket;
+    WCHAR szExt[EXTSIZ];
 
+    //
+    // Only allow certain lengths; if invalid ppDocBucket, fail
+    //
+    if (lstrlen(lpszExt) >= EXTSIZ || !ppDocBucket)
+        return FALSE;
 
-   //
-   // Only allow certain lengths; if invalid ppDocBucket, fail
-   //
-   if (lstrlen(lpszExt) >= EXTSIZ || !ppDocBucket)
-      return FALSE;
+    //
+    // Disallow duplicates
+    //
+    if (DocFind(ppDocBucket, lpszExt))
+        return -1;
 
-   //
-   // Disallow duplicates
-   //
-   if (DocFind(ppDocBucket, lpszExt)) {
-      return -1;
-   }
+    pDocBucket = (PDOCBUCKET) LocalAlloc(LPTR,sizeof(DOCBUCKET));
 
-   pDocBucket = (PDOCBUCKET) LocalAlloc(LPTR,sizeof(DOCBUCKET));
+    if (!pDocBucket)
+        return 0;
 
-   if (!pDocBucket) {
-      return 0;
-   }
+    iBucket = DOCHASHFUNC(lpszExt);
 
-   iBucket = DOCHASHFUNC(lpszExt);
+    //
+    // Set up bucket; always char lower
+    //
+    pDocBucket->next = ppDocBucket[iBucket];
 
-   //
-   // Set up bucket; always char lower
-   //
-   pDocBucket->next = ppDocBucket[iBucket];
+    CharLower(lpszExt);
+    lstrcpy(szExt, lpszExt);
+    RemoveEndQuote(szExt);
+    lstrcpy(pDocBucket->szExt, szExt);
 
-   CharLower(lpszExt);
-   lstrcpy(szExt, lpszExt);
-   RemoveEndQuote(szExt);
-   lstrcpy(pDocBucket->szExt, szExt);
-
-   pDocBucket->hIcon = NULL;
-   pDocBucket->lpszFI = NULL;
+    pDocBucket->hIcon = NULL;
+    pDocBucket->lpszFI = NULL;
    
-   if (lpszFileIcon != NULL)
-	   pDocBucket->lpszFI = (LPTSTR) LocalAlloc(LPTR, ByteCountOf(lstrlen(lpszFileIcon)+1));		
-   if (pDocBucket->lpszFI != NULL)
-	  lstrcpy(pDocBucket->lpszFI, lpszFileIcon);
+    if (lpszFileIcon != NULL)
+        pDocBucket->lpszFI = (LPTSTR) LocalAlloc(LPTR, ByteCountOf(lstrlen(lpszFileIcon)+1));		
+    if (pDocBucket->lpszFI != NULL)
+        lstrcpy(pDocBucket->lpszFI, lpszFileIcon);
 
-   ppDocBucket[iBucket] = pDocBucket;
+    ppDocBucket[iBucket] = pDocBucket;
 
-   return 1;
+    return 1;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -660,59 +624,50 @@ DocInsert(PPDOCBUCKET ppDocBucket,
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-PDOCBUCKET
-DocFind(PPDOCBUCKET ppDocBucket, LPTSTR lpszExt)
+PDOCBUCKET DocFind(PPDOCBUCKET ppDocBucket, LPTSTR lpszExt)
 {
-   PDOCBUCKET pDocBucket;
-   WCHAR szExt[EXTSIZ];
+    PDOCBUCKET pDocBucket;
+    WCHAR szExt[EXTSIZ];
 
-   //
-   // Disallow long exts; if invalid ppDocBucket, fail
-   //
-   if (lstrlen(lpszExt) >= EXTSIZ || !ppDocBucket)
-      return FALSE;
+    //
+    // Disallow long exts; if invalid ppDocBucket, fail
+    //
+    if (lstrlen(lpszExt) >= EXTSIZ || !ppDocBucket)
+        return FALSE;
 
-   lstrcpy(szExt, lpszExt);
+    lstrcpy(szExt, lpszExt);
 
-   CharLower(szExt);
-   RemoveEndQuote(szExt);
+    CharLower(szExt);
+    RemoveEndQuote(szExt);
 
-   for (pDocBucket=ppDocBucket[DOCHASHFUNC(szExt)]; pDocBucket; pDocBucket = pDocBucket->next) {
+    for (pDocBucket=ppDocBucket[DOCHASHFUNC(szExt)]; pDocBucket; pDocBucket = pDocBucket->next)
+        if (!lstrcmp(pDocBucket->szExt, szExt))
+            return pDocBucket;
 
-      if (!lstrcmp(pDocBucket->szExt, szExt)) {
-
-         return pDocBucket;
-      }
-   }
-
-   return NULL;
+    return NULL;
 }
-
-
 
 HICON DocGetIcon(PDOCBUCKET pDocBucket)
 {
-   if (pDocBucket == NULL)
+    if (pDocBucket == NULL)
 		return NULL;
 
-   if (pDocBucket->hIcon == NULL && pDocBucket->lpszFI != NULL)
+    if (pDocBucket->hIcon == NULL && pDocBucket->lpszFI != NULL)
    {
-      WCHAR *pchT = wcsrchr(pDocBucket->lpszFI, ',');
+        WCHAR *pchT = wcsrchr(pDocBucket->lpszFI, ',');
 
-      if (pchT != NULL)
-      {
-      	  INT index = atoi(pchT+1);
-      	  HICON hIcon;
+        if (pchT != NULL)
+        {
+            INT index = atoi(pchT+1);
+            HICON hIcon;
 
-		  *pchT = '\0';
-      	  if (ExtractIconEx(pDocBucket->lpszFI, index, NULL, &hIcon, 1) == 1)
-      	  	pDocBucket->hIcon = hIcon;
-      }
-   }
-   return pDocBucket->hIcon;
+            *pchT = '\0';
+            if (ExtractIconEx(pDocBucket->lpszFI, index, NULL, &hIcon, 1) == 1)
+                pDocBucket->hIcon = hIcon;
+        }
+    }
+    return pDocBucket->hIcon;
 }
-
 
 #ifdef DOCENUM
 
@@ -749,23 +704,19 @@ struct _DOC_ENUM {
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-PDOCENUM
-DocOpenEnum(PPDOCBUCKET ppDocBucket)
+PDOCENUM DocOpenEnum(PPDOCBUCKET ppDocBucket)
 {
-   PDOCENUM pDocEnum;
+    PDOCENUM pDocEnum;
 
-   pDocEnum = LocalAlloc(LMEM_FIXED, sizeof(DOCENUM));
+    pDocEnum = LocalAlloc(LMEM_FIXED, sizeof(DOCENUM));
 
-   if (!pDocEnum)
-      return NULL;
+    if (!pDocEnum)
+        return NULL;
 
-   pDocEnum->ppDocBucketBase = ppDocBucket;
-   pDocEnum->iCurChain = 0;
-   pDocEnum->pDocBucketCur = *ppDocBucket;
+    pDocEnum->ppDocBucketBase = ppDocBucket;
+    pDocEnum->iCurChain = 0;
+    pDocEnum->pDocBucketCur = *ppDocBucket;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -787,39 +738,36 @@ DocOpenEnum(PPDOCBUCKET ppDocBucket)
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-LPTSTR
-DocEnum(register PDOCENUM pDocEnum, PHICON phIcon)
+LPWSTR DocEnum(register PDOCENUM pDocEnum, PHICON phIcon)
 {
-   LPTSTR pszExt;
+    LPWSTR pszExt;
 
-   while (!pDocEnum->pDocBucketCur) {
+    while (!pDocEnum->pDocBucketCur)
+    {
+        pDocEnum->iCurChain++;
 
-      pDocEnum->iCurChain++;
+        //
+        // Check if last chain
+        //
+        if (DOCBUCKETMAX == pDocEnum->iCurChain)
+        {
+            pDocEnum->pDocBucketCur = NULL;
+            return NULL;
+        }
 
-      //
-      // Check if last chain
-      //
-      if (DOCBUCKETMAX == pDocEnum->iCurChain) {
-         pDocEnum->pDocBucketCur = NULL;
-         return NULL;
-      }
+        pDocEnum->pDocBucketCur = pDocEnum->ppDocBucketBase[pDocEnum->iCurChain];
+    }
 
-      pDocEnum->pDocBucketCur = pDocEnum->ppDocBucketBase[pDocEnum->iCurChain];
-   }
+    *phIcon = pDocEnum->pDocBucketCur->hIcon;
+    pszExt = pDocEnum->pDocBucketCur->szExt;
 
-   *phIcon = pDocEnum->pDocBucketCur->hIcon;
-   pszExt = pDocEnum->pDocBucketCur->szExt;
+    //
+    // Now update to the next one
+    //
+    pDocEnum->pDocBucketCur =  pDocEnum->pDocBucketCur->next;
 
-   //
-   // Now update to the next one
-   //
-   pDocEnum->pDocBucketCur =  pDocEnum->pDocBucketCur->next;
-
-
-   return pszExt;
+    return pszExt;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -840,14 +788,11 @@ DocEnum(register PDOCENUM pDocEnum, PHICON phIcon)
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-DocCloseEnum(PDOCENUM pDocEnum)
+VOID DocCloseEnum(PDOCENUM pDocEnum)
 {
-   LocalFree(pDocEnum);
+    LocalFree(pDocEnum);
 }
 #endif
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -948,70 +893,66 @@ DocCloseEnum(PDOCENUM pDocEnum)
 //           This is guaranteed to be synchronous with the main thread.
 //
 /////////////////////////////////////////////////////////////////////
-
-DWORD
-WINAPI
-UpdateInit(PVOID ThreadParameter)
+DWORD WINAPI UpdateInit(PVOID ThreadParameter)
 {
-   INT cDrivesTmp;
+    INT cDrivesTmp;
 
-   while (bUpdateRun) {
+    while (bUpdateRun)
+    {
+        WaitForSingleObject(hEventUpdate, INFINITE);
 
-      WaitForSingleObject(hEventUpdate, INFINITE);
+        if (!bUpdateRun)
+            break;
 
-      if (!bUpdateRun)
-         break;
+        if (!WAITNET_LOADED)
+        {
+            if (!NetLoad())
+            {
+                //
+                // Do something friendly here before we quit!
+                //
+                LoadFailMessage();
 
-      if (!WAITNET_LOADED) {
-
-         if (!NetLoad()) {
-
+                ExitProcess(1);
+            }
+            SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
+        }
+        else
+        {
             //
-            // Do something friendly here before we quit!
+            // ResetDriveInfo called much earlier in main thread in
+            // InitFileManager.
             //
-            LoadFailMessage();
+            ResetDriveInfo();
+            SetEvent(hEventUpdatePartial);
+        }
 
-            ExitProcess(1);
-         }
-         SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
+        cDrivesTmp = UpdateDriveListWorker();
 
-      } else {
+        PostMessage(hwndFrame, FS_UPDATEDRIVELISTCOMPLETE, cDrivesTmp, 0L);
 
-         //
-         // ResetDriveInfo called much earlier in main thread in
-         // InitFileManager.
-         //
-         ResetDriveInfo();
-         SetEvent(hEventUpdatePartial);
-      }
+        //
+        // We must protect hEventUpdate{,Partial} to prevent deadlock.
+        //
+        // Possible scenario w/o CriticalSectionUpdate:
+        //
+        // Main:                         Worker:
+        // Set hEventUpdate
+        //                               Reset hEventUpdate
+        //                               Reset hEventUpdatePartial
+        // Wait hEventUpdatePartial
+        //
+        // Worker never wakes up since hEventUpdate is reset.
+        //
+        EnterCriticalSection(&CriticalSectionUpdate);
+        ResetEvent(hEventUpdate);
+        ResetEvent(hEventUpdatePartial);
+        LeaveCriticalSection(&CriticalSectionUpdate);
 
-      cDrivesTmp = UpdateDriveListWorker();
+    }
 
-      PostMessage(hwndFrame, FS_UPDATEDRIVELISTCOMPLETE, cDrivesTmp, 0L);
-
-      //
-      // We must protect hEventUpdate{,Partial} to prevent deadlock.
-      //
-      // Possible scenario w/o CriticalSectionUpdate:
-      //
-      // Main:                         Worker:
-      // Set hEventUpdate
-      //                               Reset hEventUpdate
-      //                               Reset hEventUpdatePartial
-      // Wait hEventUpdatePartial
-      //
-      // Worker never wakes up since hEventUpdate is reset.
-      //
-      EnterCriticalSection(&CriticalSectionUpdate);
-      ResetEvent(hEventUpdate);
-      ResetEvent(hEventUpdatePartial);
-      LeaveCriticalSection(&CriticalSectionUpdate);
-
-   }
-
-   return  0;
+    return 0;
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1037,318 +978,314 @@ UpdateInit(PVOID ThreadParameter)
 
 #define BUF_SIZ 0x4000      // 16k buffer
 
-INT
-UpdateDriveListWorker(VOID)
+INT UpdateDriveListWorker(VOID)
 {
-   INT cRealDrives = 0;
-   INT i;
-   HANDLE hEnum;
-   LPTCH pcBuf;       // 16k buffer.  blech.
-   DWORD dwEntries;
-   DRIVE drive;
-   DWORD dwBufSiz = BUF_SIZ;
-   BOOL bCheckEnum = FALSE;
-   DWORD dwLen, dwLen2;
-   PDRIVEINFO pDriveInfo;
-   LPTCH pcBufT;
+    INT cRealDrives = 0;
+    INT i;
+    HANDLE hEnum;
+    LPTCH pcBuf;       // 16k buffer.  blech.
+    DWORD dwEntries;
+    DRIVE drive;
+    DWORD dwBufSiz = BUF_SIZ;
+    BOOL bCheckEnum = FALSE;
+    DWORD dwLen, dwLen2;
+    PDRIVEINFO pDriveInfo;
+    LPTCH pcBufT;
 
 #define bFirst TRUE
 
-   BOOL bOpenEnumSucceed = FALSE;
-   DWORD dwDrivesRemembered = 0;
+    BOOL bOpenEnumSucceed = FALSE;
+    DWORD dwDrivesRemembered = 0;
 
-   INT iUpdatePhantom = iUpdateReal ^ 1;
+    INT iUpdatePhantom = iUpdateReal ^ 1;
 
 
-   //
-   // GetLogicalDrives simply calls GetDriveType,
-   // so just do that here since we need to do it later
-   // anyway.
-   //
+    //
+    // GetLogicalDrives simply calls GetDriveType,
+    // so just do that here since we need to do it later
+    // anyway.
+    //
 
-   //
-   // !! NOTE !!
-   // This really should be IsValidDisk(drive), but this macro
-   // is faster.
-   //
+    //
+    // !! NOTE !!
+    // This really should be IsValidDisk(drive), but this macro
+    // is faster.
+    //
 #define VALIDDRIVE(drive)                               \
-   ( (aDriveInfo[drive].uType != DRIVE_UNKNOWN) &&      \
-     (aDriveInfo[drive].uType != DRIVE_NO_ROOT_DIR) )
+    ( (aDriveInfo[drive].uType != DRIVE_UNKNOWN) &&      \
+      (aDriveInfo[drive].uType != DRIVE_NO_ROOT_DIR) )
 
-   // Now toss in a few remote drives
+    // Now toss in a few remote drives
 
-   // Initialize enumeration for all remembered disks that
-   // are connectable of any type.
+    // Initialize enumeration for all remembered disks that
+    // are connectable of any type.
 
-   // New "if" added if not connected, don't show remembered!
-   // No else clause needed since defaults to no remembered connections.
+    // New "if" added if not connected, don't show remembered!
+    // No else clause needed since defaults to no remembered connections.
 
-   //
-   // bFirst static added  (Always TRUE)
-   //
-   if (bFirst && WAITNET_LOADED) {
+    //
+    // bFirst static added  (Always TRUE)
+    //
+    if (bFirst && WAITNET_LOADED)
+    {
+        pcBuf = (LPTCH) LocalAlloc(LPTR, ByteCountOf(BUF_SIZ));
 
-      pcBuf = (LPTCH) LocalAlloc(LPTR, ByteCountOf(BUF_SIZ));
+        if (pcBuf)
+        {
+            if (NO_ERROR == WNetOpenEnum(RESOURCE_REMEMBERED,
+                RESOURCETYPE_DISK, RESOURCEUSAGE_CONNECTABLE,NULL,&hEnum))
+            {
+                bOpenEnumSucceed = TRUE;
 
-      if (pcBuf) {
-
-         if (NO_ERROR == WNetOpenEnum(RESOURCE_REMEMBERED,
-            RESOURCETYPE_DISK, RESOURCEUSAGE_CONNECTABLE,NULL,&hEnum)) {
-
-            bOpenEnumSucceed = TRUE;
-
-            // Enumerate all the resources.
-            // take no prisoners or error messages.
-            // BONK!  Fix this in the future.
-
+                // Enumerate all the resources.
+                // take no prisoners or error messages.
+                // BONK!  Fix this in the future.
 EnumRetry:
-            // Get all entries
-            dwEntries = 0xffffffff;
+                // Get all entries
+                dwEntries = 0xffffffff;
 
-            switch (WNetEnumResource(hEnum, &dwEntries, pcBuf, &dwBufSiz)) {
+                switch (WNetEnumResource(hEnum, &dwEntries, pcBuf, &dwBufSiz))
+                {
+                    case NO_ERROR:
+                    {
+                        // Yes, we have no error so allow the next loop to
+                        // check the pcBuf for remembered connections.
 
-            case NO_ERROR:
+                        bCheckEnum = TRUE;
 
-               // Yes, we have no error so allow the next loop to
-               // check the pcBuf for remembered connections.
+                        // Setup Bitfield for remembered connections
+                        for (i = 0; i < (INT)dwEntries; i++)
+                        {
+                            // Check if lpLocalName is non-NULL
 
-               bCheckEnum = TRUE;
+                            if ( ((LPNETRESOURCE) pcBuf)[i].lpLocalName )
+                            {
+                                //
+                                // Make sure this is a drive letter
+                                //
 
-               // Setup Bitfield for remembered connections
-               for (i = 0; i < (INT)dwEntries; i++) {
+                                if (((LPNETRESOURCE) pcBuf)[i].lpLocalName[1] != CHAR_COLON)
+                                    continue;
 
-                  // Check if lpLocalName is non-NULL
+                                drive = (((LPNETRESOURCE) pcBuf)[i].lpLocalName[0] & 0x001f) - 1;
 
-                  if ( ((LPNETRESOURCE) pcBuf)[i].lpLocalName ) {
+                                //
+                                // If this is also an active drive, it isn't
+                                // a remembered drive; continue
+                                //
 
-                     //
-                     // Make sure this is a drive letter
-                     //
+                                if (VALIDDRIVE(drive))
+                                    continue;
 
-                     if (((LPNETRESOURCE) pcBuf)[i].lpLocalName[1] != CHAR_COLON)
-                        continue;
+                                dwDrivesRemembered |= (1 << drive);
 
-                     drive = (((LPNETRESOURCE) pcBuf)[i].lpLocalName[0] & 0x001f) - 1;
+                                pDriveInfo = &aDriveInfo[drive];
 
-                     //
-                     // If this is also an active drive, it isn't
-                     // a remembered drive; continue
-                     //
+                                //
+                                // Free buffer if used
+                                //
+                                if (pDriveInfo->lpConnectInfo)
+                                    LocalFree((HLOCAL)pDriveInfo->lpConnectInfo);
 
-                     if (VALIDDRIVE(drive))
-                        continue;
+                                //
+                                // To avoid redundancy and preserve persistent connection
+                                // remote names when LanmanWorkstation stops, we
+                                // save the names enumerated here.
+                                //
+                                dwLen = lstrlen( ((LPNETRESOURCE) pcBuf)[i].lpRemoteName) + 1;
+                                dwLen2 = lstrlen( ((LPNETRESOURCE) pcBuf)[i].lpProvider) + 1;
 
-                     dwDrivesRemembered |= (1 << drive);
-
-                     pDriveInfo = &aDriveInfo[drive];
-
-                     //
-                     // Free buffer if used
-                     //
-                     if (pDriveInfo->lpConnectInfo)
-                        LocalFree((HLOCAL)pDriveInfo->lpConnectInfo);
-
-                     //
-                     // To avoid redundancy and preserve persistent connection
-                     // remote names when LanmanWorkstation stops, we
-                     // save the names enumerated here.
-                     //
-                     dwLen = lstrlen( ((LPNETRESOURCE) pcBuf)[i].lpRemoteName) + 1;
-                     dwLen2 = lstrlen( ((LPNETRESOURCE) pcBuf)[i].lpProvider) + 1;
-
-                     pDriveInfo->dwConnectInfoMax = ByteCountOf(dwLen + dwLen2) +
-                        sizeof(WNET_CONNECTIONINFO);
-
-
-                     pDriveInfo->lpConnectInfo =
-                        (LPWNET_CONNECTIONINFO) LocalAlloc(LPTR, pDriveInfo->dwConnectInfoMax);
-
-                     //
-                     // Memory error handling
-                     //
-                     if (!pDriveInfo->lpConnectInfo) {
-                        C_NetCon(drive, ERROR_NOT_ENOUGH_MEMORY);
-                        continue;
-                     }
+                                pDriveInfo->dwConnectInfoMax = ByteCountOf(dwLen + dwLen2) +
+                                    sizeof(WNET_CONNECTIONINFO);
 
 
-                     //
-                     // setup fake ConnectInfo structure
-                     //
-                     // NOTE: ConnectInfo assumed WORD aligned when this
-                     // thing goes UNICODE: (which it coincidentally is)
-                     //
-                     // LATER: WORDUP sizeof ConnectInfo to prevent
-                     // misalignment on MIPS.
-                     //
+                                pDriveInfo->lpConnectInfo =
+                                    (LPWNET_CONNECTIONINFO) LocalAlloc(LPTR, pDriveInfo->dwConnectInfoMax);
 
-                     pDriveInfo->lpConnectInfo->lpRemoteName = (LPTSTR)
-                        (((LPBYTE)pDriveInfo->lpConnectInfo) +
-                        sizeof(WNET_CONNECTIONINFO));
+                                //
+                                // Memory error handling
+                                //
+                                if (!pDriveInfo->lpConnectInfo)
+                                {
+                                    C_NetCon(drive, ERROR_NOT_ENOUGH_MEMORY);
+                                    continue;
+                                }
 
-                     lstrcpy(pDriveInfo->lpConnectInfo->lpRemoteName,
-                        ((LPNETRESOURCE) pcBuf)[i].lpRemoteName);
+                                //
+                                // setup fake ConnectInfo structure
+                                //
+                                // NOTE: ConnectInfo assumed WORD aligned when this
+                                // thing goes UNICODE: (which it coincidentally is)
+                                //
+                                // LATER: WORDUP sizeof ConnectInfo to prevent
+                                // misalignment on MIPS.
+                                //
 
-                     pDriveInfo->lpConnectInfo->lpProvider =
-                        pDriveInfo->lpConnectInfo->lpRemoteName + dwLen;
+                                pDriveInfo->lpConnectInfo->lpRemoteName = (LPTSTR)
+                                    (((LPBYTE)pDriveInfo->lpConnectInfo) +
+                                    sizeof(WNET_CONNECTIONINFO));
 
-                     lstrcpy(pDriveInfo->lpConnectInfo->lpProvider,
-                        ((LPNETRESOURCE) pcBuf)[i].lpProvider);
+                                lstrcpy(pDriveInfo->lpConnectInfo->lpRemoteName,
+                                    ((LPNETRESOURCE) pcBuf)[i].lpRemoteName);
 
-                     //
-                     // Now get the multiline and short names
-                     //
+                                pDriveInfo->lpConnectInfo->lpProvider =
+                                    pDriveInfo->lpConnectInfo->lpRemoteName + dwLen;
 
-                     NetCon_UpdateAltName(drive, ERROR_SUCCESS);
-                  }
-               }
+                                lstrcpy(pDriveInfo->lpConnectInfo->lpProvider,
+                                    ((LPNETRESOURCE) pcBuf)[i].lpProvider);
 
+                                //
+                                // Now get the multiline and short names
+                                //
 
-               // Must continue til ERROR_NO_MORE_ITEMS
-               goto EnumRetry;
+                                NetCon_UpdateAltName(drive, ERROR_SUCCESS);
+                            }
+                        }
 
-            case ERROR_MORE_DATA:
+                        // Must continue til ERROR_NO_MORE_ITEMS
+                        goto EnumRetry;
+                    }
 
-               // Buffer is too small; realloc with bigger buffer
-               dwBufSiz += BUF_SIZ;
+                    case ERROR_MORE_DATA:
+                    {
+                        // Buffer is too small; realloc with bigger buffer
+                        dwBufSiz += BUF_SIZ;
 
-               pcBufT = pcBuf;
-               pcBuf = (LPTCH) LocalReAlloc((HLOCAL)pcBuf, ByteCountOf(dwBufSiz), LMEM_MOVEABLE);
+                        pcBufT = pcBuf;
+                        pcBuf = (LPTCH) LocalReAlloc((HLOCAL)pcBuf, ByteCountOf(dwBufSiz), LMEM_MOVEABLE);
 
-               // Only retry if pcBuf is successfully reallocated.
-               // If it wasn't, then just fall through since
-               // bCheckEnum is defaulted false and we won't use pcBuf.
+                        // Only retry if pcBuf is successfully reallocated.
+                        // If it wasn't, then just fall through since
+                        // bCheckEnum is defaulted false and we won't use pcBuf.
 
-               if (pcBuf)
-                  goto EnumRetry;
+                        if (pcBuf)
+                            goto EnumRetry;
 
-               // Failed memory allocation, free pcBufT
-               LocalFree((HLOCAL)pcBufT);
+                        // Failed memory allocation, free pcBufT
+                        LocalFree((HLOCAL)pcBufT);
+                    }
 
-            case ERROR_NO_MORE_ITEMS:
-               break;
+                    case ERROR_NO_MORE_ITEMS:
+                        break;
 
-            default:
-               break;
+                    default:
+                        break;
+                }
             }
-         }
-      }
+        }
+
+    }
+    else
+    {
+        // Set pcBuf to Null so we don't free it below
+        pcBuf = NULL;
+    }
 
 
-   } else {
+    // In this else case (Not connected to net), don't use pcBuf below
+    // bCheckEnum defaults to FALSE;
 
-      // Set pcBuf to Null so we don't free it below
-      pcBuf = NULL;
-   }
+    for (i = 0, pDriveInfo = &aDriveInfo[0]; i < MAX_DRIVES; i++, pDriveInfo++)
+    {
+        //
+        // Take only active drives--ignore remembered ones.
+        // This is ok since UpdateInit calls ResetDriveInfo which
+        // turns off bRemembered for real drives.
+        //
+        if (VALIDDRIVE(i) && !pDriveInfo->bRemembered)
+        {
+            rgiDriveReal[iUpdatePhantom][cRealDrives++] = i;
 
+            R_NetCon(i);
 
-   // In this else case (Not connected to net), don't use pcBuf below
-   // bCheckEnum defaults to FALSE;
+            //
+            // Force a refresh
+            //
+            // No need for Type; done above.
+            //
 
-   for (i = 0, pDriveInfo = &aDriveInfo[0];
-        i < MAX_DRIVES;
-        i++, pDriveInfo++)
-   {
-      //
-      // Take only active drives--ignore remembered ones.
-      // This is ok since UpdateInit calls ResetDriveInfo which
-      // turns off bRemembered for real drives.
-      //
-      if (VALIDDRIVE(i) && !pDriveInfo->bRemembered) {
-         rgiDriveReal[iUpdatePhantom][cRealDrives++] = i;
+        }
+        else if (bCheckEnum && (1 << i) & dwDrivesRemembered)
+        {
+            //
+            // This handles remembered connections that don't already exist.
+            //
 
-         R_NetCon(i);
+            // if the enumerator succeeded (bCheckEnum)
+            // and there are entries remaining, check for drives remembered.
 
-         //
-         // Force a refresh
-         //
-         // No need for Type; done above.
-         //
+            // Since we must do things in order (rgiDrive must hold
+            // drive sequentially, from a-z), plop in our enumerated ones
+            // only when they are next.
 
-      } else if (bCheckEnum && (1 << i) & dwDrivesRemembered) {
+            rgiDriveReal[iUpdatePhantom][cRealDrives++] = i;
 
-         //
-         // This handles remembered connections that don't already exist.
-         //
+            pDriveInfo->bRemembered = TRUE;
+            pDriveInfo->uType =  DRIVE_REMOTE;
+            pDriveInfo->iOffset = GetDriveOffset(i);
 
-         // if the enumerator successed (bCheckEnum)
-         // and there are entries remaining, check for drives remembered.
+            C_Type(i, ERROR_SUCCESS);
+            C_NetCon(i, ERROR_CONNECTION_UNAVAIL);
 
-         // Since we must do things in order (rgiDrive must hold
-         // drive sequentially, from a-z), plop in our enumerated ones
-         // only when they are next.
+        }
+        else
+        {
+            //
+            // No need for Type; done above.
+            //
+            I_NetCon(i);      // Invalidate NetCon!
 
-         rgiDriveReal[iUpdatePhantom][cRealDrives++] = i;
+            //
+            // No longer remembered, either.  We must clear this out because
+            // during the first phase of updates, we pretend that this bit
+            // is valid since it doesn't change much.
+            //
+            pDriveInfo->bRemembered = FALSE;
+        }
 
-         pDriveInfo->bRemembered = TRUE;
-         pDriveInfo->uType =  DRIVE_REMOTE;
-         pDriveInfo->iOffset = GetDriveOffset(i);
+        //
+        // Now the drive is in a safe state.
+        //
+    }
 
-         C_Type(i, ERROR_SUCCESS);
-         C_NetCon(i, ERROR_CONNECTION_UNAVAIL);
+    // Clear out other drives
 
-      } else {
+    for (i=cRealDrives; i < MAX_DRIVES; i++)
+        rgiDriveReal[iUpdatePhantom][i] = 0;
 
-         //
-         // No need for Type; done above.
-         //
-         I_NetCon(i);      // Invalidate NetCon!
+    if (bOpenEnumSucceed)
+        WNetCloseEnum(hEnum);
 
-         //
-         // No longer remembered, either.  We must clear this out because
-         // during the first phase of updates, we pretend that this bit
-         // is valid since it doesn't change much.
-         //
-         pDriveInfo->bRemembered = FALSE;
-      }
-
-      //
-      // Now the drive is in a safe state.
-      //
-   }
-
-   // Clear out other drives
-
-   for (i=cRealDrives; i < MAX_DRIVES; i++) {
-      rgiDriveReal[iUpdatePhantom][i] = 0;
-   }
-
-   if (bOpenEnumSucceed)
-      WNetCloseEnum(hEnum);
-
-   if (pcBuf)
-      LocalFree((HANDLE)pcBuf);
+    if (pcBuf)
+        LocalFree((HANDLE)pcBuf);
 
 
-   PostMessage(hwndFrame, FS_UPDATEDRIVETYPECOMPLETE, (WPARAM)cRealDrives, 0L);
+    PostMessage(hwndFrame, FS_UPDATEDRIVETYPECOMPLETE, (WPARAM)cRealDrives, 0L);
 
-   //
-   // Now go through and update all the VolInfo/NetCon stuff
-   //
-   for (i = 0; i < cRealDrives; i++) {
+    //
+    // Now go through and update all the VolInfo/NetCon stuff
+    //
+    for (i = 0; i < cRealDrives; i++)
+    {
+        drive = rgiDriveReal[iUpdatePhantom][i];
 
-      drive = rgiDriveReal[iUpdatePhantom][i];
+        if (IsRemoteDrive(drive))
+        {
+            U_NetCon(drive);
+            aDriveInfo[drive].bUpdating = FALSE;
+        }
+        else
+        {
+            if (!IsRemovableDrive(drive) && !IsCDRomDrive(drive))
+                U_VolInfo(drive);
+        }
+    }
 
-      if (IsRemoteDrive(drive)) {
-
-         U_NetCon(drive);
-         aDriveInfo[drive].bUpdating = FALSE;
-
-      } else {
-
-         if (!IsRemovableDrive(drive) && !IsCDRomDrive(drive)) {
-
-            U_VolInfo(drive);
-         }
-      }
-   }
-
-   return cRealDrives;
+    return cRealDrives;
 
 #undef BUF_SIZ
 #undef VALIDDRIVE
 }
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1384,112 +1321,106 @@ EnumRetry:
 //           Header is only valid if return value is 0 and not ALTNAME_REG!!!
 //
 /////////////////////////////////////////////////////////////////////
-
-DWORD
-WFGetConnection(DRIVE drive, LPTSTR* ppPath, BOOL bConvertClosed, DWORD dwType)
+DWORD WFGetConnection(DRIVE drive, LPTSTR* ppPath, BOOL bConvertClosed, DWORD dwType)
 {
-   register DWORD dwRetVal;
-   BOOL bConverted = FALSE;
+    register DWORD dwRetVal;
+    BOOL bConverted = FALSE;
 
-   //
-   // If bUpdating, skip the U_NetCon for speed.
-   //
-   if (!aDriveInfo[drive].bUpdating) {
-      U_NetCon(drive);
-   }
+    //
+    // If bUpdating, skip the U_NetCon for speed.
+    //
+    if (!aDriveInfo[drive].bUpdating)
+        U_NetCon(drive);
 
-   //
-   // Get the status of the main network name.
-   //
-   dwRetVal = GETRETVAL(NetCon,drive);
+    //
+    // Get the status of the main network name.
+    //
+    dwRetVal = GETRETVAL(NetCon,drive);
 
-   //
-   // Convert error codes here
-   //
-   // ERROR_NO_NETWORK         -> ERROR_NOT_CONNECTED
-   // ERROR_CONNECTION_UNAVAIL -> remembered
-   //
-   if (dwRetVal == ERROR_NO_NETWORK) {
-      dwRetVal = ERROR_NOT_CONNECTED;
-   } else {
-
-      if (!bConvertClosed) {
-         if (dwRetVal == ERROR_CONNECTION_UNAVAIL &&
-            aDriveInfo[drive].bRemembered) {
-
-            //
-            // Since bRemembered is set, we know that the string
-            // is valid since it was successfully allocated in
-            // UpdateDriveListWorker().
-            //
-            dwRetVal = ERROR_SUCCESS;
-            bConverted = TRUE;
-         }
-      }
-   }
-
-   //
-   // Check if we want to return a share name
-   //
-   if (ppPath) {
-
-      //
-      // If updating, return error updating.
-      //
-      if (aDriveInfo[drive].bUpdating) {
-
-         return DE_UPDATING;
-      }
-
-      //
-      // Check if we want an altname.
-      //
-      if (dwType < MAX_ALTNAME) {
-
-         if (aDriveInfo[drive].dwAltNameError) {
-
-            //
-            // We had an error, check if main name is ok
-            //
-            if (!dwRetVal) {
-
-               //
-               // Yes, return the main name with an error.
-               //
-               dwRetVal = DE_REGNAME;
-               goto UseRegName;
+    //
+    // Convert error codes here
+    //
+    // ERROR_NO_NETWORK         -> ERROR_NOT_CONNECTED
+    // ERROR_CONNECTION_UNAVAIL -> remembered
+    //
+    if (dwRetVal == ERROR_NO_NETWORK)
+        dwRetVal = ERROR_NOT_CONNECTED;
+    else
+    {
+        if (!bConvertClosed)
+        {
+            if (dwRetVal == ERROR_CONNECTION_UNAVAIL &&
+                aDriveInfo[drive].bRemembered)
+            {
+                //
+                // Since bRemembered is set, we know that the string
+                // is valid since it was successfully allocated in
+                // UpdateDriveListWorker().
+                //
+                dwRetVal = ERROR_SUCCESS;
+                bConverted = TRUE;
             }
+        }
+    }
 
+    //
+    // Check if we want to return a share name
+    //
+    if (ppPath)
+    {
+        //
+        // If updating, return error updating.
+        //
+        if (aDriveInfo[drive].bUpdating)
+            return DE_UPDATING;
+
+        //
+        // Check if we want an altname.
+        //
+        if (dwType < MAX_ALTNAME)
+        {
+            if (aDriveInfo[drive].dwAltNameError)
+            {
+                //
+                // We had an error, check if main name is ok
+                //
+                if (!dwRetVal)
+                {
+                    //
+                    // Yes, return the main name with an error.
+                    //
+                    dwRetVal = DE_REGNAME;
+                    goto UseRegName;
+                }
+
+                //
+                // Return this error code
+                //
+                dwRetVal = aDriveInfo[drive].dwAltNameError;
+            }
+            else
+            {
+                *ppPath = aDriveInfo[drive].lpszRemoteNameMinusFour[dwType] +
+                    DRIVE_INFO_NAME_HEADER;
+            }
+        }
+        else
+        {
             //
-            // Return this error code
+            // We want to use the regular name.
             //
-            dwRetVal = aDriveInfo[drive].dwAltNameError;
-
-         } else {
-
-            *ppPath = aDriveInfo[drive].lpszRemoteNameMinusFour[dwType] +
-               DRIVE_INFO_NAME_HEADER;
-         }
-
-      } else {
-
-         //
-         // We want to use the regular name.
-         //
-         if (!dwRetVal) {
-
-            //
-            // No error occurred, this is ok.
-            //
+            if (!dwRetVal)
+            {
+                //
+                // No error occurred, this is ok.
+                //
 UseRegName:
-            *ppPath = aDriveInfo[drive].lpConnectInfo->lpRemoteName;
-         }
-      }
-   }
-   return dwRetVal;
+                *ppPath = aDriveInfo[drive].lpConnectInfo->lpRemoteName;
+            }
+        }
+    }
+    return dwRetVal;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1517,123 +1448,114 @@ UseRegName:
 //           quick response time based on rgiDriveType.
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-UpdateDriveListComplete(VOID)
+VOID UpdateDriveListComplete(VOID)
 {
-   HWND hwnd, hwndNext;
-   DRIVE drive;
-   DRIVEIND driveInd;
-   INT CurSel;
-   WCHAR szPath[2*MAXPATHLEN];
-   LPTSTR lpszVol, lpszOldVol;
+    HWND hwnd, hwndNext;
+    DRIVE drive;
+    DRIVEIND driveInd;
+    INT CurSel;
+    WCHAR szPath[2*MAXPATHLEN];
+    LPTSTR lpszVol, lpszOldVol;
 
-   for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = hwndNext) {
+    for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = hwndNext)
+    {
+        hwndNext = GetWindow(hwnd, GW_HWNDNEXT);
 
-      hwndNext = GetWindow(hwnd, GW_HWNDNEXT);
+        // ignore the titles and search window
+        if (GetWindow(hwnd, GW_OWNER) || hwnd == hwndSearch)
+            continue;
 
-      // ignore the titles and search window
-      if (GetWindow(hwnd, GW_OWNER) || hwnd == hwndSearch)
-         continue;
+        drive = GetWindowLongPtr(hwnd, GWL_TYPE);
 
-      drive = GetWindowLongPtr(hwnd, GWL_TYPE);
+        //
+        // Invalidate cache to get real one in case the user reconnected
+        // d: from \\popcorn\public to \\rastaman\ntwin
+        //
+        // Previously used MDI window title to determine if the volume
+        // has changed.  Now we will just check DriveInfo structure
+        // (bypass status bits).
+        //
 
-      //
-      // Invalidate cache to get real one in case the user reconnected
-      // d: from \\popcorn\public to \\rastaman\ntwin
-      //
-      // Previously used MDI window title to determine if the volume
-      // has changed.  Now we will just check DriveInfo structure
-      // (bypass status bits).
-      //
+        //
+        // Now only do this for remote drives!
+        //
 
-      //
-      // Now only do this for remote drives!
-      //
+        if (IsRemoteDrive(drive))
+        {
+            if (!WFGetConnection(drive, &lpszVol, FALSE, ALTNAME_REG))
+            {
+                lpszOldVol = (LPTSTR) GetWindowLongPtr(hwnd, GWL_VOLNAME);
 
-      if (IsRemoteDrive(drive)) {
+                if (lpszOldVol && lpszVol)
+                {
+                    if (lstrcmpi(lpszVol, lpszOldVol))
+                    {
+                        //
+                        // Share has changed, refresh.
+                        // Don't call UpdateDriveList... we just did that!
+                        //
+                        RefreshWindow(hwnd, FALSE, FALSE);
 
-         if (!WFGetConnection(drive, &lpszVol, FALSE, ALTNAME_REG)) {
-            lpszOldVol = (LPTSTR) GetWindowLongPtr(hwnd, GWL_VOLNAME);
-
-            if (lpszOldVol && lpszVol) {
-
-               if (lstrcmpi(lpszVol, lpszOldVol)) {
-
-                  //
-                  // Share has changed, refresh.
-                  // Don't call UpdateDriveList... we just did that!
-                  //
-                  RefreshWindow(hwnd, FALSE, FALSE);
-
-                  continue;
-               }
+                        continue;
+                    }
+                }
             }
-         }
 
-         //
-         // Just update drive window title
-         //
+            //
+            // Just update drive window title
+            //
 
-         GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
-         SetMDIWindowText(hwnd, szPath);
-      }
-   }
+            GetMDIWindowText(hwnd, szPath, COUNTOF(szPath));
+            SetMDIWindowText(hwnd, szPath);
+        }
+    }
 
-   //
-   // Redo all of the drives.
-   //
-   if (hwndDriveList)
-   {
-       SendMessage(hwndDriveList, WM_SETREDRAW, FALSE, 0);
-       CurSel = SendMessage(hwndDriveList, CB_GETCURSEL, 0, 0);
-       for (driveInd = 0; driveInd < cDrives; driveInd++)
-       {
-           if (aDriveInfo[rgiDrive[driveInd]].dwLines[ALTNAME_MULTI] != 1)
-           {
-              SendMessage(hwndDriveList, CB_DELETESTRING, driveInd, 0);
-              SendMessage(hwndDriveList, CB_INSERTSTRING, driveInd, rgiDrive[driveInd]);
-           }
-       }
-       SendMessage(hwndDriveList, CB_SETCURSEL, CurSel, 0);
-       SendMessage(hwndDriveList, WM_SETREDRAW, TRUE, 0);
+    //
+    // Redo all of the drives.
+    //
+    if (hwndDriveList)
+    {
+        SendMessage(hwndDriveList, WM_SETREDRAW, FALSE, 0);
+        CurSel = SendMessage(hwndDriveList, CB_GETCURSEL, 0, 0);
+        for (driveInd = 0; driveInd < cDrives; driveInd++)
+        {
+            if (aDriveInfo[rgiDrive[driveInd]].dwLines[ALTNAME_MULTI] != 1)
+            {
+                SendMessage(hwndDriveList, CB_DELETESTRING, driveInd, 0);
+                SendMessage(hwndDriveList, CB_INSERTSTRING, driveInd, rgiDrive[driveInd]);
+            }
+        }
+        SendMessage(hwndDriveList, CB_SETCURSEL, CurSel, 0);
+        SendMessage(hwndDriveList, WM_SETREDRAW, TRUE, 0);
 
-       InvalidateRect(hwndDriveList, NULL, TRUE);
-       UpdateWindow(hwndDriveList);
-   }
+        InvalidateRect(hwndDriveList, NULL, TRUE);
+        UpdateWindow(hwndDriveList);
+    }
 }
 
-
-VOID
-UpdateDriveList(VOID)
+VOID UpdateDriveList(VOID)
 {
-   if (!WAITNET_LOADED)
-      return;
+    if (!WAITNET_LOADED)
+        return;
 
-   EnterCriticalSection(&CriticalSectionUpdate);
+    EnterCriticalSection(&CriticalSectionUpdate);
 
-   SetEvent(hEventUpdate);
-   WaitForSingleObject(hEventUpdatePartial, INFINITE);
+    SetEvent(hEventUpdate);
+    WaitForSingleObject(hEventUpdatePartial, INFINITE);
 
-   LeaveCriticalSection(&CriticalSectionUpdate);
+    LeaveCriticalSection(&CriticalSectionUpdate);
 }
 
-
-VOID
-UpdateWaitQuit(VOID)
+VOID UpdateWaitQuit(VOID)
 {
-   bUpdateRun = FALSE;
+    bUpdateRun = FALSE;
 
-   EnterCriticalSection(&CriticalSectionUpdate);
-   SetEvent(hEventUpdate);
-   LeaveCriticalSection(&CriticalSectionUpdate);
+    EnterCriticalSection(&CriticalSectionUpdate);
+    SetEvent(hEventUpdate);
+    LeaveCriticalSection(&CriticalSectionUpdate);
 
-   WaitForSingleObject(hThreadUpdate, INFINITE);
+    WaitForSingleObject(hThreadUpdate, INFINITE);
 }
-
-
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1673,196 +1595,194 @@ UpdateWaitQuit(VOID)
 //           ** we set here!
 //
 /////////////////////////////////////////////////////////////////////
-
-BOOL
-NetLoad(VOID)
+BOOL NetLoad(VOID)
 {
-   HMENU hMenuFrame;
-   FMS_LOAD ls;
-   const WORD bias = (IDM_SECURITY + 1) * 100;
+    HMENU hMenuFrame;
+    FMS_LOAD ls;
+    const WORD bias = (IDM_SECURITY + 1) * 100;
 
-   HWND hwnd, hwndT;
-   DWORD dwType;
-   DRIVE drive;
+    HWND hwnd, hwndT;
+    DWORD dwType;
+    DRIVE drive;
 
-   WCHAR szPath[] = SZ_ACOLONSLASH;
+    WCHAR szPath[] = SZ_ACOLONSLASH;
 
-   if (WNetStat(NS_CONNECT))  {
-      hMPR = LoadLibrary(MPR_DLL);
+    if (WNetStat(NS_CONNECT))
+    {
+        hMPR = LoadLibrary(MPR_DLL);
 
-      if (!hMPR)
-         return FALSE;
+        if (!hMPR)
+            return FALSE;
 
 
-      //
-      // This is used to reduce typing.
-      // Each function (e.g. Foo) has three things:
-      //
-      // lpfnFoo                  pointer to function
-      // NETWORK_Foo              name for GetProcAddress
-      // #define Foo (*lpfnFoo)   make it transparent
-      //
+        //
+        // This is used to reduce typing.
+        // Each function (e.g. Foo) has three things:
+        //
+        // lpfnFoo                  pointer to function
+        // NETWORK_Foo              name for GetProcAddress
+        // #define Foo (*lpfnFoo)   make it transparent
+        //
 
 #define GET_PROC(x) \
-      if (!(lpfn##x = (PVOID) GetProcAddress(hMPR,NETWORK_##x))) \
-         return FALSE
+        if (!(lpfn##x = (PVOID) GetProcAddress(hMPR,NETWORK_##x))) \
+            return FALSE
 
-      GET_PROC(WNetCloseEnum);
-      GET_PROC(WNetConnectionDialog2);
-      GET_PROC(WNetDisconnectDialog2);
+        GET_PROC(WNetCloseEnum);
+        GET_PROC(WNetConnectionDialog2);
+        GET_PROC(WNetDisconnectDialog2);
 
-      GET_PROC(WNetEnumResourceW);
-      GET_PROC(WNetGetConnection2W);
-      GET_PROC(WNetGetDirectoryTypeW);
-      GET_PROC(WNetGetLastErrorW);
-      GET_PROC(WNetGetPropertyTextW);
-      GET_PROC(WNetOpenEnumW);
-      GET_PROC(WNetPropertyDialogW);
-      GET_PROC(WNetFormatNetworkNameW);
+        GET_PROC(WNetEnumResourceW);
+        GET_PROC(WNetGetConnection2W);
+        GET_PROC(WNetGetDirectoryTypeW);
+        GET_PROC(WNetGetLastErrorW);
+        GET_PROC(WNetGetPropertyTextW);
+        GET_PROC(WNetOpenEnumW);
+        GET_PROC(WNetPropertyDialogW);
+        GET_PROC(WNetFormatNetworkNameW);
 
-      if ((lpfnWNetRestoreSingleConnectionW = (PVOID) GetProcAddress(hMPR,"WNetRestoreSingleConnectionW")) == NULL)
-      {
-         GET_PROC(WNetRestoreConnectionW);
-      }
+        if ((lpfnWNetRestoreSingleConnectionW = (PVOID) GetProcAddress(hMPR,"WNetRestoreSingleConnectionW")) == NULL)
+        {
+            GET_PROC(WNetRestoreConnectionW);
+        }
 
 #ifdef NETCHECK
-      GET_PROC(WNetDirectoryNotifyW);
+        GET_PROC(WNetDirectoryNotifyW);
 #endif
 
 #undef GET_PROC
 
-      bNetLoad = TRUE;
-   }
+        bNetLoad = TRUE;
+    }
 
-   if (WNetStat(NS_SHAREDLG)) {
+    if (WNetStat(NS_SHAREDLG))
+    {
+        hNTLanman = LoadLibrary(NTLANMAN_DLL);
 
-      hNTLanman = LoadLibrary(NTLANMAN_DLL);
-
-      if (hNTLanman) {
+        if (hNTLanman)
+        {
 
 #define GET_PROC(x) \
-         if (!(lpfn##x = (PVOID) GetProcAddress(hNTLanman, NETWORK_##x))) \
-            goto Fail
+            if (!(lpfn##x = (PVOID) GetProcAddress(hNTLanman, NETWORK_##x))) \
+                goto Fail
 
-         GET_PROC(ShareCreate);
-         GET_PROC(ShareStop);
+            GET_PROC(ShareCreate);
+            GET_PROC(ShareStop);
 #undef GET_PROC
 
-         //
-         // If bNetShareLoad is FALSE, then we know that the share stuff
-         // is not available.  Therefore, we won't try to use
-         // WNetGetDirectoryType below, which leaves bNetTypeLoad FALSE,
-         // which prevents future use of WNetGetDirectoryType.
-         //
-         bNetShareLoad = TRUE;
+            //
+            // If bNetShareLoad is FALSE, then we know that the share stuff
+            // is not available.  Therefore, we won't try to use
+            // WNetGetDirectoryType below, which leaves bNetTypeLoad FALSE,
+            // which prevents future use of WNetGetDirectoryType.
+            //
+            bNetShareLoad = TRUE;
 
-      } else {
+        }
+        else
+        {
 Fail:
-         //
-         // Disable the share buttons/menus
-         // Since WNetStat(NS_SHAREDLG) ret'd true, then we added the
-         // buttons.  Mistake.  Disable them now.
-         //
-         PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_SHAREAS, FALSE);
-         PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_STOPSHARE, FALSE);
+            //
+            // Disable the share buttons/menus
+            // Since WNetStat(NS_SHAREDLG) ret'd true, then we added the
+            // buttons.  Mistake.  Disable them now.
+            //
+            PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_SHAREAS, FALSE);
+            PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_STOPSHARE, FALSE);
 
-         EnableMenuItem(GetMenu(hwndFrame), IDM_SHAREAS,
-            MF_BYCOMMAND | MF_GRAYED );
+            EnableMenuItem(GetMenu(hwndFrame), IDM_SHAREAS,
+                MF_BYCOMMAND | MF_GRAYED );
 
-         EnableMenuItem(GetMenu(hwndFrame), IDM_STOPSHARE,
-            MF_BYCOMMAND | MF_GRAYED );
-      }
-   }
+            EnableMenuItem(GetMenu(hwndFrame), IDM_STOPSHARE,
+                MF_BYCOMMAND | MF_GRAYED );
+        }
+    }
 
-   SetEvent(hEventNetLoad);
-   bNetDone = TRUE;
+    SetEvent(hEventNetLoad);
+    bNetDone = TRUE;
 
-   //
-   // Try loading acledit.  If we fail, then gray out the button and
-   // remove the popup menu.
-   //
-   hAcledit = LoadLibrary(ACLEDIT_DLL);
+    //
+    // Try loading acledit.  If we fail, then gray out the button and
+    // remove the popup menu.
+    //
+    hAcledit = LoadLibrary(ACLEDIT_DLL);
 
-   hMenuFrame = GetMenu(hwndFrame);
+    hMenuFrame = GetMenu(hwndFrame);
 
-   if (hAcledit) {
+    if (hAcledit)
+    {
+        lpfnAcledit = (FM_EXT_PROC) GetProcAddress(hAcledit, FM_EXT_PROC_ENTRYW);
+        if (!lpfnAcledit)
+            lpfnAcledit = (FM_EXT_PROC) GetProcAddress(hAcledit, FM_EXT_PROC_ENTRYA);
 
-      lpfnAcledit = (FM_EXT_PROC) GetProcAddress(hAcledit, FM_EXT_PROC_ENTRYW);
-      if (!lpfnAcledit)
-         lpfnAcledit = (FM_EXT_PROC) GetProcAddress(hAcledit, FM_EXT_PROC_ENTRYA);
+        ls.wMenuDelta = bias;
+        ls.hMenu = GetSubMenu(hMenuFrame, IDM_SECURITY);
 
-      ls.wMenuDelta = bias;
-      ls.hMenu = GetSubMenu(hMenuFrame, IDM_SECURITY);
+        if (!lpfnAcledit ||
+            !(*lpfnAcledit)(hwndFrame, FMEVENT_LOAD, (LPARAM)(LPFMS_LOAD)&ls))
+        {
+            FreeLibrary(hAcledit);
+            lpfnAcledit = NULL;
+        }
+    }
 
-      if (!lpfnAcledit ||
-         !(*lpfnAcledit)(hwndFrame, FMEVENT_LOAD, (LPARAM)(LPFMS_LOAD)&ls)) {
+    if (!lpfnAcledit)
+    {
+        DeleteMenu(hMenuFrame, MapIDMToMenuPos(IDM_SECURITY), MF_BYPOSITION);
+        bSecMenuDeleted = TRUE;
+        DrawMenuBar(hwndFrame);
 
-         FreeLibrary(hAcledit);
+        PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_PERMISSIONS, FALSE);
+    }
 
-         lpfnAcledit = NULL;
-      }
-   }
+    SetEvent(hEventAcledit);
+    bNetAcleditDone = TRUE;
 
-   if (!lpfnAcledit) {
+    //
+    // We need to check both, since this is a sharing thing,
+    // but the api is in network.
+    //
+    if (bNetShareLoad && bNetLoad)
+    {
+        //
+        // Now go through and call WNetGetDirectoryType for all windows
+        // to pre-cache this info without stalling the user.
+        //
 
-      DeleteMenu(hMenuFrame, MapIDMToMenuPos(IDM_SECURITY), MF_BYPOSITION);
-      bSecMenuDeleted = TRUE;
-      DrawMenuBar(hwndFrame);
+        for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+        {
+            if (hwnd != hwndSearch && !GetWindow(hwnd, GW_OWNER))
+            {
+                drive = GetWindowLongPtr(hwnd, GWL_TYPE);
+                DRIVESET(szPath, drive);
 
-      PostMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_PERMISSIONS, FALSE);
-   }
+                if (!aDriveInfo[drive].bShareChkTried  &&
+                    WN_SUCCESS != WNetGetDirectoryType(szPath, &dwType, TRUE))
+                {
+                    aDriveInfo[drive].bShareChkFail = TRUE;
+                }
 
-   SetEvent(hEventAcledit);
-   bNetAcleditDone = TRUE;
-
-   //
-   // We need to check both, since this is a sharing thing,
-   // but the api is in network.
-   //
-   if (bNetShareLoad && bNetLoad) {
-
-      //
-      // Now go through and call WNetGetDirectoryType for all windows
-      // to pre-cache this info without stalling the user.
-      //
-
-      for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
-
-         if (hwnd != hwndSearch && !GetWindow(hwnd, GW_OWNER)) {
-
-            drive = GetWindowLongPtr(hwnd, GWL_TYPE);
-            DRIVESET(szPath, drive);
-
-            if (!aDriveInfo[drive].bShareChkTried  &&
-               WN_SUCCESS != WNetGetDirectoryType(szPath, &dwType, TRUE)) {
-
-               aDriveInfo[drive].bShareChkFail = TRUE;
+                aDriveInfo[drive].bShareChkTried = TRUE;
             }
+        }
 
-            aDriveInfo[drive].bShareChkTried = TRUE;
-         }
-      }
+        bNetTypeLoad = TRUE;
 
-      bNetTypeLoad = TRUE;
+        for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+        {
+            if (hwnd != hwndSearch && !GetWindow(hwnd, GW_OWNER))
+            {
+                if (hwndT = HasTreeWindow(hwnd))
+                    InvalidateRect(GetDlgItem(hwndT, IDCW_TREELISTBOX), NULL, FALSE);
 
-      for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
-
-         if (hwnd != hwndSearch && !GetWindow(hwnd, GW_OWNER)) {
-
-            if (hwndT = HasTreeWindow(hwnd)) {
-               InvalidateRect(GetDlgItem(hwndT, IDCW_TREELISTBOX), NULL, FALSE);
+                if (hwndT = HasDirWindow(hwnd))
+                    InvalidateRect(GetDlgItem(hwndT, IDCW_LISTBOX), NULL, FALSE);
             }
-            if (hwndT = HasDirWindow(hwnd)) {
-               InvalidateRect(GetDlgItem(hwndT, IDCW_LISTBOX), NULL, FALSE);
-            }
-         }
-      }
-   }
+        }
+    }
 
-   return TRUE;
+    return TRUE;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -1885,101 +1805,92 @@ Fail:
 //          Race condition with IsNetDir!
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-ResetDriveInfo()
+VOID ResetDriveInfo()
 {
-   PDRIVEINFO pDriveInfo;
-   DRIVE drive;
-   INT i;
+    PDRIVEINFO pDriveInfo;
+    DRIVE drive;
+    INT i;
 
-   //
-   // Initialize the count of drives.
-   //
-   cDrives = 0;
+    //
+    // Initialize the count of drives.
+    //
+    cDrives = 0;
 
-   //
-   // We must be quick until the reset events...
-   //
-   for (drive = 0, pDriveInfo = &aDriveInfo[0];
-        drive < MAX_DRIVES;
-        drive++, pDriveInfo++)
-   {
-      R_Type(drive);
-      U_Type(drive);
+    //
+    // We must be quick until the reset events...
+    //
+    for (drive = 0, pDriveInfo = &aDriveInfo[0]; drive < MAX_DRIVES; drive++, pDriveInfo++)
+    {
+        R_Type(drive);
+        U_Type(drive);
 
-      R_Space(drive);
-      R_VolInfo(drive);
+        R_Space(drive);
+        R_VolInfo(drive);
 
-      //
-      // Should call IsValidDisk, but this is faster.
-      //
-      if ( (pDriveInfo->uType != DRIVE_UNKNOWN) &&
-           (pDriveInfo->uType != DRIVE_NO_ROOT_DIR) )
-      {
-         //
-         // Update cDrives
-         //
-         rgiDrive[cDrives] = drive;
-
-         pDriveInfo->bRemembered = FALSE;
-         pDriveInfo->iOffset = GetDriveOffset(drive);
-
-         if (IsRemoteDrive(drive))
-         {
+        //
+        // Should call IsValidDisk, but this is faster.
+        //
+        if ( (pDriveInfo->uType != DRIVE_UNKNOWN) &&
+             (pDriveInfo->uType != DRIVE_NO_ROOT_DIR) )
+        {
             //
-            // Update dwLines for WM_MEASUREITEM
+            // Update cDrives
             //
-            for (i = 0; i < MAX_ALTNAME; i++)
+            rgiDrive[cDrives] = drive;
+
+            pDriveInfo->bRemembered = FALSE;
+            pDriveInfo->iOffset = GetDriveOffset(drive);
+
+            if (IsRemoteDrive(drive))
             {
-               pDriveInfo->dwLines[i] = 1;
+                //
+                // Update dwLines for WM_MEASUREITEM
+                //
+                for (i = 0; i < MAX_ALTNAME; i++)
+                    pDriveInfo->dwLines[i] = 1;
+
+                C_NetCon(drive, ERROR_SUCCESS);
             }
-            C_NetCon(drive, ERROR_SUCCESS);
-         }
-         else
-         {
-            C_NetCon(drive, ERROR_NO_NETWORK);
-         }
+            else
+                C_NetCon(drive, ERROR_NO_NETWORK);
 
-         cDrives++;
-      }
-      else if (pDriveInfo->bRemembered)
-      {
-         //
-         // Hack: assume remembered connections don't change too much.
-         //
+            cDrives++;
+        }
+        else if (pDriveInfo->bRemembered)
+        {
+            //
+            // Hack: assume remembered connections don't change too much.
+            //
 
-         //
-         // Also, at this point, the state information in aDriveInfo
-         // hasn't changed for this remembered connection.
-         //
-         rgiDrive[cDrives] = drive;
-         cDrives++;
-      }
+            //
+            // Also, at this point, the state information in aDriveInfo
+            // hasn't changed for this remembered connection.
+            //
+            rgiDrive[cDrives] = drive;
+            cDrives++;
+        }
 
-      //
-      // Any clearing of drive information should be done
-      // here.  As soon as a drive is invalid, we reset the
-      // necessary stuff when it becomes valid.
-      // (Must be set for "good" drives elsewhere)
-      //
+        //
+        // Any clearing of drive information should be done
+        // here.  As soon as a drive is invalid, we reset the
+        // necessary stuff when it becomes valid.
+        // (Must be set for "good" drives elsewhere)
+        //
 
-      //
-      // Clear all invalid drives' bShareChkFail.
-      //
-      // (This bool checks if a IsNetDir / IsNetPath fails-- due to
-      // WNetGetDirectoryType failing (due to not being administrator on
-      // remote machine).  Only call WNetGetDirectory once, since it is
-      // s-l-o-w for fails.  It's also cached, too.
-      //
-      pDriveInfo->bShareChkFail  = FALSE;
-      pDriveInfo->bShareChkTried = FALSE;
+        //
+        // Clear all invalid drives' bShareChkFail.
+        //
+        // (This bool checks if a IsNetDir / IsNetPath fails-- due to
+        // WNetGetDirectoryType failing (due to not being administrator on
+        // remote machine).  Only call WNetGetDirectory once, since it is
+        // s-l-o-w for fails.  It's also cached, too.
+        //
+        pDriveInfo->bShareChkFail  = FALSE;
+        pDriveInfo->bShareChkTried = FALSE;
 
-      aDriveInfo[drive].bUpdating = TRUE;
-   }
+        aDriveInfo[drive].bUpdating = TRUE;
+    }
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -2000,41 +1911,37 @@ ResetDriveInfo()
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-BOOL
-LoadComdlg(VOID)
+BOOL LoadComdlg(VOID)
 {
-   UINT uErrorMode;
+    UINT uErrorMode;
 
-   //
-   // Have we already loaded it?
-   //
-   if (hComdlg)
-      return TRUE;
+    //
+    // Have we already loaded it?
+    //
+    if (hComdlg)
+        return TRUE;
 
-   //
-   // Let the system handle errors here
-   //
-   uErrorMode = SetErrorMode(0);
-   hComdlg = LoadLibrary(COMDLG_DLL);
-   SetErrorMode(uErrorMode);
+    //
+    // Let the system handle errors here
+    //
+    uErrorMode = SetErrorMode(0);
+    hComdlg = LoadLibrary(COMDLG_DLL);
+    SetErrorMode(uErrorMode);
 
-   if (!hComdlg)
-      return FALSE;
+    if (!hComdlg)
+        return FALSE;
 
 #define GET_PROC(x) \
-   if (!(lpfn##x = (PVOID) GetProcAddress(hComdlg,COMDLG_##x))) \
-      return FALSE
+    if (!(lpfn##x = (PVOID) GetProcAddress(hComdlg,COMDLG_##x))) \
+        return FALSE
 
-   GET_PROC(ChooseFontW);
-   GET_PROC(GetOpenFileNameW);
+    GET_PROC(ChooseFontW);
+    GET_PROC(GetOpenFileNameW);
 
 #undef GET_PROC
 
-   return TRUE;
+    return TRUE;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -2056,35 +1963,31 @@ LoadComdlg(VOID)
 // Notes:
 //
 /////////////////////////////////////////////////////////////////////
-
-VOID
-WaitLoadEvent(BOOL bNet)
+VOID WaitLoadEvent(BOOL bNet)
 {
-   HCURSOR hCursor;
+    HCURSOR hCursor;
 
-   if (!(bNet ? bNetDone : bNetAcleditDone)) {
+    if (!(bNet ? bNetDone : bNetAcleditDone))
+    {
+        hCursor = LoadCursor(NULL, IDC_WAIT);
 
-      hCursor = LoadCursor(NULL, IDC_WAIT);
+        if (hCursor)
+            hCursor = SetCursor(hCursor);
 
-      if (hCursor)
-         hCursor = SetCursor(hCursor);
+        ShowCursor(TRUE);
 
-      ShowCursor(TRUE);
+        SetThreadPriority(hThreadUpdate, THREAD_PRIORITY_NORMAL);
 
-      SetThreadPriority(hThreadUpdate, THREAD_PRIORITY_NORMAL);
-
-      WaitForSingleObject(bNet ?
-            hEventNetLoad :
-            hEventAcledit,
+        WaitForSingleObject(bNet ? hEventNetLoad : hEventAcledit,
          INFINITE);
 
-      SetThreadPriority(hThreadUpdate, THREAD_PRIORITY_BELOW_NORMAL);
+        SetThreadPriority(hThreadUpdate, THREAD_PRIORITY_BELOW_NORMAL);
 
-      if (hCursor)
-         SetCursor(hCursor);
+        if (hCursor)
+            SetCursor(hCursor);
 
-      ShowCursor(FALSE);
-   }
+        ShowCursor(FALSE);
+    }
 }
 
 
