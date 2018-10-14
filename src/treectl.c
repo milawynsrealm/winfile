@@ -919,7 +919,8 @@ StealTreeData(
 
         for (i = 0; SendMessage(hwndLBSrc, LB_GETTEXT, i, (LPARAM)&pNode) != LB_ERR; i++)
         {
-            if (pNewNode = (PDNODE)LocalAlloc(LPTR, sizeof(DNODE) + ByteCountOf(lstrlen(pNode->szName))))
+            pNewNode = (PDNODE)LocalAlloc(LPTR, sizeof(DNODE) + ByteCountOf(lstrlen(pNode->szName)));
+            if (pNewNode != NULL)
             {
                 *pNewNode = *pNode;                             // dup the node
                 lstrcpy(pNewNode->szName, pNode->szName);       // and the name
@@ -980,7 +981,6 @@ VOID FillTreeListbox(HWND hwndTC,
                      BOOL bDontSteal)
 {
     PDNODE pNode;
-    INT   iNode;
     DWORD dwAttribs;
     WCHAR  szTemp[MAXPATHLEN+1] = SZ_ACOLONSLASH;
     WCHAR  szExpand[MAXPATHLEN+1];
@@ -1008,15 +1008,15 @@ VOID FillTreeListbox(HWND hwndTC,
 
         bPartialSort = IS_PARTIALSORT(drive);
 
-        iNode = InsertDirectory(hwndTC,
-                                NULL,
-                                0,
-                                szTemp,
-                                &pNode,
-                                IsCasePreservedDrive(DRIVEID(szDefaultDir)),
-                                bPartialSort,
-                                (DWORD)(-1));
-      
+        InsertDirectory(hwndTC,
+                        NULL,
+                        0,
+                        szTemp,
+                        &pNode,
+                        IsCasePreservedDrive(DRIVEID(szDefaultDir)),
+                        bPartialSort,
+                        (DWORD)(-1));
+
         if (pNode)
         {
             dwAttribs = ATTR_DIR | (GetWindowLongPtr(GetParent(hwndTC), GWL_ATTRIBS) & ATTR_HS);
@@ -1138,11 +1138,11 @@ VOID FillOutTreeList(HWND hwndTC,
 //      *ppNode is filled with pNode of node, or pNode of parent if bReturnParent is TRUE; NULL if not found
 //
 
-BOOLFindItemFromPath(HWND hwndLB,
-                     LPTSTR lpszPath,
-                     BOOL bReturnParent,
-                     DWORD *pIndex,
-                     PDNODE *ppNode)
+BOOL FindItemFromPath(HWND hwndLB,
+                      LPTSTR lpszPath,
+                      BOOL bReturnParent,
+                      DWORD *pIndex,
+                      PDNODE *ppNode)
 {
     register DWORD     i;
     register LPTSTR    p;
@@ -1315,7 +1315,8 @@ BOOL RectTreeItem(HWND hwndLB, INT iItem, BOOL bFocusOn)
         else
             wColor = COLOR_WINDOWFRAME;
 
-        if (hBrush = CreateSolidBrush(GetSysColor(wColor)))
+        hBrush = CreateSolidBrush(GetSysColor(wColor));
+        if (hBrush != NULL)
         {
             FrameRect(hdc, &rc, hBrush);
             DeleteObject(hBrush);
@@ -1327,7 +1328,7 @@ BOOL RectTreeItem(HWND hwndLB, INT iItem, BOOL bFocusOn)
         UpdateWindow(hwndLB);
     }
     ReleaseDC(hwndLB, hdc);
-    return TRUE;0
+    return TRUE;
 
 EmptyStatusAndReturn:
     SendMessage(hwndStatus, SB_SETTEXT, SBT_NOBORDERS|255, (LPARAM)szNULL);
@@ -1446,7 +1447,8 @@ VOID TCWP_DrawItem(LPDRAWITEMSTRUCT lpLBItem, HWND hwndLB, HWND hWnd)
         dy = lpLBItem->rcItem.bottom - lpLBItem->rcItem.top;
         y = lpLBItem->rcItem.top + (dy/2);
 
-        if (hBrush = CreateSolidBrush(GetSysColor(COLOR_GRAYTEXT)))
+        hBrush = CreateSolidBrush(GetSysColor(COLOR_GRAYTEXT));
+        if (hBrush != NULL)
         {
             hOld = SelectObject(hdc, hBrush);
 
@@ -1568,7 +1570,8 @@ VOID TCWP_DrawItem(LPDRAWITEMSTRUCT lpLBItem, HWND hwndLB, HWND hWnd)
             else
             {
                 HBRUSH hbr;
-                if (hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT)))
+                hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT));
+                if (hbr != NULL)
                 {
                     FrameRect(hdc, &rc, hbr);
                     DeleteObject(hbr);
@@ -1689,7 +1692,8 @@ VOID InvalidateAllNetTypes(VOID)
         if (hwndT != hwndSearch && !GetWindow(hwndT, GW_OWNER))
         {
             InvalidateNetTypes(HasTreeWindow(hwndT));
-            if (hwndDir = HasDirWindow(hwndT))
+            hwndDir = HasDirWindow(hwndT);
+            if (hwndDir != NULL)
                 SendMessage(hwndDir, FS_CHANGEDISPLAY, CD_PATH, 0L);
         }
     }
@@ -2014,6 +2018,10 @@ TreeControlWndProc(
 
         case TC_SETDRIVE:
         {
+            RECT rc;
+            DWORD i;
+            PDNODE pNode;
+
 #define fFullyExpand    LOBYTE(wParam)
 #define fDontSteal      HIBYTE(wParam)
 #define fDontSelChange  HIWORD(wParam)
@@ -2024,10 +2032,6 @@ TreeControlWndProc(
             //
             if (GetWindowLongPtr(hwnd, GWL_READLEVEL))
                 break;
-
-            RECT rc;
-            DWORD i;
-            PDNODE pNode;
 
             // do the same as TC_SETDIRECTORY above for the simple case
             if (FindItemFromPath(hwndLB, (LPTSTR)lParam, 0, &i, &pNode))
@@ -2150,7 +2154,8 @@ TreeControlWndProc(
             {
                 HWND hwndDir;
 
-                if (hwndDir = HasDirWindow(hwndParent))
+                hwndDir = HasDirWindow(hwndParent);
+                if (hwndDir != NULL)
                     SetFocus(hwndDir);
                 else
                     SetFocus(hwndDriveBar);
@@ -2395,7 +2400,8 @@ TreeControlWndProc(
                     uStrLen = lstrlen(szPath);
                     SendMessage(hwndParent, FS_GETFILESPEC, COUNTOF(szPath)-uStrLen, (LPARAM)(szPath+uStrLen));
 
-                    if (hwndDir = HasDirWindow(hwndParent))
+                    hwndDir = HasDirWindow(hwndParent);
+                    if (hwndDir != NULL)
                     {
                         //
                         // update the dir window
@@ -2495,8 +2501,8 @@ UpdateSelection:
             SendMessage(hwndLB, LB_GETTEXT, wParam, (LPARAM)&pNode);
             lstrcpy(szPath, pNode->szName);
 
-            if ((wTextAttribs & TA_LOWERCASE) && (pNode->wFlags & TF_LOWERCASE) ||
-                (wTextAttribs & TA_LOWERCASEALL))
+            if ((wTextAttribs & TA_LOWERCASE) && ((pNode->wFlags & TF_LOWERCASE) ||
+                (wTextAttribs & TA_LOWERCASEALL)))
             {
                 CharLower(szPath);
             }
@@ -3090,8 +3096,8 @@ UINT GetRealExtent(PDNODE pNode, HWND hwndLB, LPWSTR szPath, int *pLen)
     *pLen = lstrlen(pNode->szName);
     lstrcpy(szPath, pNode->szName);
 
-    if ((wTextAttribs & TA_LOWERCASE) && (pNode->wFlags & TF_LOWERCASE) ||
-        (wTextAttribs & TA_LOWERCASEALL) )
+    if (((wTextAttribs & TA_LOWERCASE) && (pNode->wFlags & TF_LOWERCASE)) ||
+        (wTextAttribs & TA_LOWERCASEALL))
     {
         CharLower(szPath);
     }

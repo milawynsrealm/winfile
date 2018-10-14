@@ -552,7 +552,7 @@ Restart:
         //
         for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
         {
-            if (hwndDir = HasDirWindow(hwnd))
+            if ((hwndDir = HasDirWindow(hwnd)))
             {
                 //
                 // Critical section since GWL_HDTA+HDTAABORT reads must
@@ -678,7 +678,7 @@ InvalidDirectory:
                         goto CDBDiskGone;
                     }
 
-                    if (hwndTree=HasTreeWindow(hwnd))
+                    if ((hwndTree = HasTreeWindow(hwnd)))
                     {
                         //
                         // If we changed dirs, and there is a tree window, set the

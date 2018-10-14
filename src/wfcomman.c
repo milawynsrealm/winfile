@@ -98,7 +98,7 @@ HWND LocateDirWindow(LPWSTR pszPath, BOOL bNoFileSpec, BOOL bNoTreeWindow)
     register HWND hwndT;
     HWND hwndDir;
     LPTSTR pT2;
-    WHAR szTemp[MAXPATHLEN];
+    WCHAR szTemp[MAXPATHLEN];
     WCHAR szPath[MAXPATHLEN];
 
     pT2 = pszPath;
@@ -122,7 +122,8 @@ HWND LocateDirWindow(LPWSTR pszPath, BOOL bNoFileSpec, BOOL bNoTreeWindow)
     //
     for (hwndT = GetWindow(hwndMDIClient, GW_CHILD); hwndT; hwndT = GetWindow(hwndT, GW_HWNDNEXT))
     {
-        if (hwndDir = HasDirWindow(hwndT))
+        hwndDir = HasDirWindow(hwndT);
+        if (hwndDir != NULL)
         {
             //
             //  Get the Window's path information and remove the file spec.
@@ -177,7 +178,8 @@ VOID UpdateAllDirWindows(LPWSTR pszPath, DWORD dwFunction, BOOL bNoFileSpec)
     //
     for (hwndT = GetWindow(hwndMDIClient, GW_CHILD); hwndT; hwndT = GetWindow(hwndT, GW_HWNDNEXT))
     {
-        if (hwndDir = HasDirWindow(hwndT))
+        hwndDir = HasDirWindow(hwndT);
+        if (hwndDir != NULL)
         {
             //
             //  Get the Window's path information and remove the file spec.
@@ -260,7 +262,8 @@ VOID ChangeFileSystem( register DWORD dwFunction, LPWSTR lpszFile, LPWSTR lpszTo
             NotifySearchFSC(szFrom, dwFunction);
 
             // Update the original directory window (if any).
-            if (hwndOld = LocateDirWindow(szFrom, FALSE, FALSE))
+            hwndOld = LocateDirWindow(szFrom, FALSE, FALSE);
+            if (hwndOld != NULL)
                 SendMessage(hwndOld, WM_FSC, dwFunction, (LPARAM)szFrom);
 
             NotifySearchFSC(szTo, dwFunction);
@@ -276,7 +279,8 @@ VOID ChangeFileSystem( register DWORD dwFunction, LPWSTR lpszFile, LPWSTR lpszTo
             {
                 for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
                 {
-                    if (hwndTree = HasTreeWindow(hwnd))
+                    hwndTree = HasTreeWindow(hwnd);
+                    if (hwndTree != NULL)
                     {
                         SendMessage(hwndTree, WM_FSC, FSC_RMDIRQUIET, (LPARAM)szFrom);
 
@@ -306,7 +310,8 @@ VOID ChangeFileSystem( register DWORD dwFunction, LPWSTR lpszFile, LPWSTR lpszTo
         case (FSC_RMDIR):
         {
             // Close any open directory window.
-            if (hwnd = LocateDirWindow(szFrom, TRUE, TRUE))
+            hwnd = LocateDirWindow(szFrom, TRUE, TRUE);
+            if (hwnd != NULL)
                 SendMessage(hwnd, WM_CLOSE, 0, 0L);
 
             /*** FALL THROUGH ***/
@@ -317,8 +322,11 @@ VOID ChangeFileSystem( register DWORD dwFunction, LPWSTR lpszFile, LPWSTR lpszTo
         {
             /* Update the tree. */
             for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
-                if (hwndTree = HasTreeWindow(hwnd))
+            {
+                hwndTree = HasTreeWindow(hwnd);
+                if (hwndTree != NULL)
                     SendMessage(hwndTree, WM_FSC, dwFunction, (LPARAM)szFrom);
+            }
 
             /*** FALL THROUGH ***/
         }
@@ -471,10 +479,13 @@ HWND CreateDirWindow(register LPWSTR szPath, BOOL bReplaceOpen, HWND hwndActive)
     //
     if (bReplaceOpen)
     {
+        INT i;
+        DRIVE drive;
+
         CharUpperBuff(szPath, 1);     // make sure
 
-        DRIVE drive = DRIVEID(szPath);
-        for (INT i = 0; i<cDrives; i++)
+        drive = DRIVEID(szPath);
+        for (i = 0; i<cDrives; i++)
         {
             if (drive == rgiDrive[i])
             {
@@ -485,7 +496,8 @@ HWND CreateDirWindow(register LPWSTR szPath, BOOL bReplaceOpen, HWND hwndActive)
             }
         }
 
-        if (hwndT = HasDirWindow(hwndActive))
+        hwndT = HasDirWindow(hwndActive);
+        if (hwndT != NULL)
         {
             AddBackslash(szPath);                   // default to all files
             SendMessage(hwndT, FS_GETFILESPEC, MAXFILENAMELEN, (LPARAM)(szPath + lstrlen(szPath)));
@@ -496,7 +508,8 @@ HWND CreateDirWindow(register LPWSTR szPath, BOOL bReplaceOpen, HWND hwndActive)
         //
         // update the tree if necessary
         //
-        if (hwndT = HasTreeWindow(hwndActive))
+        hwndT = HasTreeWindow(hwndActive);
+        if (hwndT != NULL)
             SendMessage(hwndT, TC_SETDRIVE, 0, (LPARAM)(szPath));
 
         //
@@ -716,16 +729,18 @@ BOOL FmifsLoaded()
 BOOL GetPowershellExePath(LPTSTR szPSPath)
 {
     HKEY hkey;
+    size_t iKey = 0;
+
     if (ERROR_SUCCESS != RegOpenKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\Microsoft\\PowerShell"), &hkey))
         return FALSE;
 
-    szPSPath[0] = TEXT('\0');
+    szPSPath[0] = L'\0';
 
-    for (int ikey = 0; ikey < 5; ikey++)
+    for (iKey = 0; iKey < 5; iKey++)
     {
         WCHAR szSub[10]; // just the "1" or "3"
 
-        DWORD dwError = RegEnumKey(hkey, ikey, szSub, COUNTOF(szSub));
+        DWORD dwError = RegEnumKey(hkey, iKey, szSub, COUNTOF(szSub));
 
         if (dwError == ERROR_SUCCESS)
         {
@@ -733,7 +748,7 @@ BOOL GetPowershellExePath(LPTSTR szPSPath)
             DWORD dwInstall;
             DWORD dwType;
             DWORD cbValue = sizeof(dwInstall);
-            dwError = RegGetValue(hkey, szSub, TEXT("Install"), RRF_RT_DWORD, &dwType, (PVOID)&dwInstall, &cbValue);
+            dwError = RegGetValueW(hkey, szSub, L"Install", RRF_RT_DWORD, &dwType, (PVOID)&dwInstall, &cbValue);
 
             if (dwError == ERROR_SUCCESS && dwInstall == 1)
             {
@@ -744,17 +759,17 @@ BOOL GetPowershellExePath(LPTSTR szPSPath)
 
                 if (dwError == ERROR_SUCCESS)
                 {
-                    LPTSTR szPSExe = TEXT("\\Powershell.exe");
+                    LPTSTR szPSExe = L"\\Powershell.exe";
 
                     cbValue = (MAXPATHLEN - lstrlen(szPSExe)) * sizeof(WCHAR);
-                    dwError = RegGetValue(hkeySub, TEXT("PowerShellEngine"), TEXT("ApplicationBase"), RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ, &dwType, (PVOID)szPSPath, &cbValue);
+                    dwError = RegGetValueW(hkeySub, L"PowerShellEngine", L"ApplicationBase", RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ, &dwType, (PVOID)szPSPath, &cbValue);
 
                     if (dwError == ERROR_SUCCESS)
                         lstrcat(szPSPath, szPSExe);
                     else
                     {
                         // reset to empty string if not successful
-                        szPSPath[0] = TEXT('\0');
+                        szPSPath[0] = L'\0';
                     }
                     RegCloseKey(hkeySub);
                 }
@@ -794,7 +809,7 @@ BOOL GetBashExePath(LPTSTR szBashPath, UINT bufSize)
 BOOL AppCommandProc(register DWORD id)
 {
     DWORD         dwFlags;
-    HENU         hMenu;
+    HMENU         hMenu;
     register HWND hwndActive;
     BOOL          bTemp;
     HWND          hwndT;
@@ -1039,8 +1054,9 @@ BOOL AppCommandProc(register DWORD id)
             // with the selection they can manipulate without undoing the
             // selection.
 
-            if (hwndT = HasDirWindow(hwndActive))
-            SetFocus(hwndT);
+            hwndT = HasDirWindow(hwndActive);
+            if (hwndT != NULL)
+                SetFocus(hwndT);
 
             DialogBox(hAppInstance, (LPTSTR) MAKEINTRESOURCE(SELECTDLG), hwndFrame, SelectDlgProc);
             break;
@@ -1220,8 +1236,10 @@ BOOL AppCommandProc(register DWORD id)
                 StripBackslash(szPath);
 
                 if (bUndeleteUnicode)
+                {
                     if ((*lpfpUndelete)(hwndActive, szPath) != IDOK)
                         break;
+                }
                 else
                 {
                     CHAR szPathA[MAXPATHLEN];
@@ -1255,8 +1273,12 @@ BOOL AppCommandProc(register DWORD id)
             count = 0;
             p = pSel;
 
-            while (p = GetNextFile(p, szTemp, COUNTOF(szTemp)))
+            while (p != NULL)
+            {
+                p = GetNextFile(p, szTemp, COUNTOF(szTemp));
                 count++;
+            }
+                
 
             LocalFree((HANDLE)pSel);
 
@@ -1314,8 +1336,10 @@ BOOL AppCommandProc(register DWORD id)
 
             SendMessage(hwndFrame, FS_DISABLEFSC, 0, 0L);
 
-            while (p = GetNextFile(p, szPath, COUNTOF(szPath)))
+            while (p != NULL)
             {
+                p = GetNextFile(p, szPath, COUNTOF(szPath));
+
                 QualifyPath(szPath);
 
                 if (!WFCheckCompress(hwndActive, szPath, dwAttr, FALSE, &bIgnoreAll))
@@ -1577,7 +1601,8 @@ BOOL AppCommandProc(register DWORD id)
 
             if (lpfnShareStop)
             {
-                if (ret = ShareCreate(hwndFrame))
+                ret = ShareCreate(hwndFrame);
+                if (ret != ERROR_SUCCESS)
                 {
                     //
                     // Report error
@@ -1600,7 +1625,8 @@ BOOL AppCommandProc(register DWORD id)
 
             if (lpfnShareStop)
             {
-                if (ret = ShareStop(hwndFrame))
+                ret = ShareStop(hwndFrame);
+                if (ret != ERROR_SUCCESS)
                 {
                     //
                     // Report error
@@ -1740,28 +1766,32 @@ DealWithNetError_NotifyResume:
 
         case IDM_EXPONE:
         {
-            if (hwndT = HasTreeWindow(hwndActive))
+            hwndT = HasTreeWindow(hwndActive);
+            if (hwndT != NULL)
                 SendMessage(hwndT, TC_EXPANDLEVEL, FALSE, 0L);
             break;
         }
 
         case IDM_EXPSUB:
         {
-            if (hwndT = HasTreeWindow(hwndActive))
+            hwndT = HasTreeWindow(hwndActive);
+            if (hwndT != NULL)
                 SendMessage(hwndT, TC_EXPANDLEVEL, TRUE, 0L);
             break;
         }
 
         case IDM_EXPALL:
         {
-            if (hwndT = HasTreeWindow(hwndActive))
+            hwndT = HasTreeWindow(hwndActive);
+            if (hwndT != NULL)
                 SendMessage(hwndT, TC_SETDRIVE, MAKEWORD(TRUE, 0), 0L);
             break;
         }
 
         case IDM_COLLAPSE:
         {
-            if (hwndT = HasTreeWindow(hwndActive))
+            hwndT = HasTreeWindow(hwndActive);
+            if (hwndT != NULL)
                 SendMessage(hwndT, TC_COLLAPSELEVEL, 0, 0L);
             break;
         }
@@ -1808,7 +1838,8 @@ DealWithNetError_NotifyResume:
 
 ChangeDisplay:
 
-            if (hwndT = HasDirWindow(hwndActive))
+            hwndT = HasDirWindow(hwndActive);
+            if (hwndT != NULL)
                 SendMessage(hwndT, FS_CHANGEDISPLAY, id, MAKELONG(LOWORD(dwFlags), 0));
             else if (hwndActive == hwndSearch)
             {
@@ -2255,29 +2286,29 @@ INT UpdateConnectionsOnConnect(VOID)
 DWORD 
 ReadMoveStatus()
 {
-	IDataObject *pDataObj;
-	FORMATETC fmtetcDrop = { 0, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	UINT uFormatEffect = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
-	FORMATETC fmtetcEffect = { uFormatEffect, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-	STGMEDIUM stgmed;
-	DWORD dwEffect = DROPEFFECT_COPY;
+    IDataObject *pDataObj;
+    //FORMATETC fmtetcDrop = { 0, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    UINT uFormatEffect = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+    FORMATETC fmtetcEffect = { uFormatEffect, 0, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+    STGMEDIUM stgmed;
+    DWORD dwEffect = DROPEFFECT_COPY;
 
-	OleGetClipboard(&pDataObj);		// pDataObj == NULL if error
+    OleGetClipboard(&pDataObj);		// pDataObj == NULL if error
 
-	if (pDataObj != NULL && pDataObj->lpVtbl->GetData(pDataObj, &fmtetcEffect, &stgmed) == S_OK)
-	{
-		LPDWORD lpEffect = GlobalLock(stgmed.hGlobal);
-		if (*lpEffect & DROPEFFECT_COPY) dwEffect = DROPEFFECT_COPY;
-		if (*lpEffect & DROPEFFECT_MOVE) dwEffect = DROPEFFECT_MOVE;
-		GlobalUnlock(stgmed.hGlobal);
-		ReleaseStgMedium(&stgmed);
-	}
+    if (pDataObj != NULL && pDataObj->lpVtbl->GetData(pDataObj, &fmtetcEffect, &stgmed) == S_OK)
+    {
+        LPDWORD lpEffect = GlobalLock(stgmed.hGlobal);
+        if (*lpEffect & DROPEFFECT_COPY) dwEffect = DROPEFFECT_COPY;
+        if (*lpEffect & DROPEFFECT_MOVE) dwEffect = DROPEFFECT_MOVE;
+        GlobalUnlock(stgmed.hGlobal);
+        ReleaseStgMedium(&stgmed);
+    }
 
-	return dwEffect;
+    return dwEffect;
 }
 
 VOID 
 UpdateMoveStatus(DWORD dwEffect)
 {
-	SendMessage(hwndStatus, SB_SETTEXT, 2, (LPARAM)(dwEffect == DROPEFFECT_MOVE ? TEXT("MOVE PENDING") : NULL));
+    SendMessage(hwndStatus, SB_SETTEXT, 2, (LPARAM)(dwEffect == DROPEFFECT_MOVE ? TEXT("MOVE PENDING") : NULL));
 }

@@ -1321,10 +1321,9 @@ EnumRetry:
 //           Header is only valid if return value is 0 and not ALTNAME_REG!!!
 //
 /////////////////////////////////////////////////////////////////////
-DWORD WFGetConnection(DRIVE drive, LPTSTR* ppPath, BOOL bConvertClosed, DWORD dwType)
+DWORD WFGetConnection(DRIVE drive, LPWSTR* ppPath, BOOL bConvertClosed, DWORD dwType)
 {
     register DWORD dwRetVal;
-    BOOL bConverted = FALSE;
 
     //
     // If bUpdating, skip the U_NetCon for speed.
@@ -1358,7 +1357,6 @@ DWORD WFGetConnection(DRIVE drive, LPTSTR* ppPath, BOOL bConvertClosed, DWORD dw
                 // UpdateDriveListWorker().
                 //
                 dwRetVal = ERROR_SUCCESS;
-                bConverted = TRUE;
             }
         }
     }
@@ -1772,10 +1770,10 @@ Fail:
         {
             if (hwnd != hwndSearch && !GetWindow(hwnd, GW_OWNER))
             {
-                if (hwndT = HasTreeWindow(hwnd))
+                if ((hwndT = HasTreeWindow(hwnd)))
                     InvalidateRect(GetDlgItem(hwndT, IDCW_TREELISTBOX), NULL, FALSE);
 
-                if (hwndT = HasDirWindow(hwnd))
+                if ((hwndT = HasDirWindow(hwnd)))
                     InvalidateRect(GetDlgItem(hwndT, IDCW_LISTBOX), NULL, FALSE);
             }
         }

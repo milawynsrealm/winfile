@@ -38,6 +38,7 @@ INT  CheckMultiple(LPTSTR pInput);
 VOID DialogEnterFileStuff(register HWND hwnd);
 DWORD SafeFileRemove(LPTSTR szFileOEM);
 BOOL IsWindowsFile(LPTSTR szFileOEM);
+BOOL IsLFNDrive(LPTSTR szDrive);
 
 INT_PTR CALLBACK ReplaceDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam);
 
@@ -391,7 +392,7 @@ GetComps:
         }
         else
         {
-            LPWSTR pT, pTT = NULL;
+            LPWSTR pT; //, pTT = NULL;
 
 AddComponent:
             uLen = AddBackslash(lpszPath);
@@ -885,7 +886,8 @@ VOID SetDlgItemPath(HWND hDlg, INT id, LPWSTR pszPath)
     else
     {
         hFont = (HANDLE)SendMessage(hwnd, WM_GETFONT, 0, 0L);
-        if (hFont = SelectObject(hdc, hFont))
+        hFont = SelectObject(hdc, hFont);
+        if (hFont != NULL)
         {
             CompactPath(hdc, szPath, rc.right);
             SelectObject(hdc, hFont);
@@ -1338,7 +1340,7 @@ DWORD GetNameDialog(DWORD dwOp, LPWSTR pFrom, LPWSTR pTo)
 // to minimize the number of calls which access the disk.
 //
 /////////////////////////////////////////////////////////////////////
-DWORD GetNextPair(PCOPYROOT pcr, LPTSTR pFrom,
+DWORD GetNextPair(PCOPYROOT pcr, LPWSTR pFrom,
     LPWSTR pToPath, LPWSTR pToSpec,
     DWORD dwFunc, PDWORD pdwError,
     BOOL bIsLFNDriveDest)
@@ -1821,7 +1823,8 @@ VOID DialogEnterFileStuff(register HWND hwnd)
     //
     // set the focus to the cancel button so the user can hit space or esc
     //
-    if (hwndT = GetDlgItem(hwnd, IDCANCEL))
+    hwndT = GetDlgItem(hwnd, IDCANCEL);
+    if (hwndT != NULL)
     {
         SetFocus(hwndT);
         SendMessage(hwnd,DM_SETDEFID,IDCANCEL,0L);
@@ -1830,13 +1833,16 @@ VOID DialogEnterFileStuff(register HWND hwnd)
     //
     // disable the ok button and the edit controls
     //
-    if (hwndT = GetDlgItem(hwnd, IDOK))
+    hwndT = GetDlgItem(hwnd, IDOK);
+    if (hwndT != NULL)
         EnableWindow(hwndT, FALSE);
 
-    if (hwndT = GetDlgItem(hwnd, IDD_TO))
+    hwndT = GetDlgItem(hwnd, IDD_TO);
+    if (hwndT != NULL)
         EnableWindow(hwndT, FALSE);
 
-    if (hwndT = GetDlgItem(hwnd, IDD_FROM))
+    hwndT = GetDlgItem(hwnd, IDD_FROM);
+    if (hwndT != NULL)
         EnableWindow(hwndT, FALSE);
 }
 
@@ -1983,7 +1989,8 @@ DWORD WF_CreateDirectory(HWND hwndParent, LPWSTR szDest, LPWSTR szSrc)
                 // When we reach the last spec, create the directory
                 // using the template.
                 //
-                if (ret = MKDir(szTemp, (p == pLastSpecEnd) ? szSrc : NULL))
+                ret = MKDir(szTemp, (p == pLastSpecEnd) ? szSrc : NULL);
+                if (ret != NULL)
                 {
                     //
                     // Here we must also ignore the ERROR_ALREADY_EXISTS error.
@@ -2295,7 +2302,8 @@ DWORD WINAPI WFMoveCopyDriverThread(LPVOID lpParameter)
 
         // Fix up source spec
 
-        if (ret = IsInvalidPath(szSource))
+        ret = IsInvalidPath(szSource);
+        if (ret != ERROR_SUCCESS)
             goto ShowMessageBox;
 
         // Moved up for the wacky case of copy to floppy,
@@ -2315,12 +2323,14 @@ TRY_COPY_AGAIN:
             bDoMoveRename = OPER_DOFILE == oper &&
                 (FUNC_RENAME == pCopyInfo->dwFunc || FUNC_MOVE == pCopyInfo->dwFunc);
 
+            ret = IsInvalidPath(szDest);
+
             if (bSameFile && !bDoMoveRename)
             {
                 ret = DE_SAMEFILE;
                 goto ShowMessageBox;
             }
-            else if (ret = IsInvalidPath (szDest))
+            else if (ret != ERROR_SUCCESS)
             {
                 bErrorOnDest = TRUE;
                 goto ShowMessageBox;
@@ -2397,15 +2407,15 @@ TRY_COPY_AGAIN:
                                     CdDotDot(szDest);
 
                                     // Remove directory
-#ifdef NETCHECK
-                                    fInvalidate = TRUE;  // following may delete share
+//#ifdef NETCHECK
+                                    //fInvalidate = TRUE;  // following may delete share
 
                                     ret = bConfirmed ? WN_SUCCESS : NetCheck(szDest, WNDN_RMDIR);
 
                                     switch (ret)
                                     {
                                         case WN_SUCCESS:
-#endif
+//#endif
                                         {
                                             //
                                             // Remove directory
@@ -2429,7 +2439,7 @@ TRY_COPY_AGAIN:
                                                     ret = RMDir(szSource);
                                                 }
                                             }
-#ifdef NETCHECK
+//#ifdef NETCHECK
                                             break;
                                         }
 
@@ -2439,7 +2449,7 @@ TRY_COPY_AGAIN:
                                         case WN_CANCEL:
                                             goto CancelWholeOperation;
                                     }
-#endif
+//#endif
                                 }
                                 else
                                 {
@@ -2594,7 +2604,7 @@ DoMkDir:
 #ifdef NETCHECK
 SkipMKDir:
 #endif
-                reak;
+                break;
             }
 
             case OPER_MKDIR | FUNC_DELETE:
@@ -2782,12 +2792,14 @@ SkipMKDir:
 
             case OPER_DOFILE | FUNC_MOVE:
             {
+#ifdef FASTMOVE
 DoMove:
                 if (CurIDS != IDS_MOVINGMSG)
                 {
                     CurIDS = IDS_MOVINGMSG;
                     Notify(hdlgProgress, IDS_MOVINGMSG, szNULL, szNULL);
                 }
+#endif
 DoMoveRename:
                 // Don't allow the user to rename from or to the root
                 // directory

@@ -627,5 +627,5 @@ BEGIN
     IDS_NEWWINONCONNECT,        "&Open New Window on Connect"
 END
 
-#include "winfile_en-US.dlg"
+//#include "winfile_en-US.dlg"
 

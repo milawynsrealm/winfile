@@ -1171,7 +1171,7 @@ INT InitPropertiesDialog(HWND hDlg)
     HWND hwndLB, hwndActive, hwndTree;
     LPXDTA lpxdta;
     DWORD dwAttribsOn, dwAttribs3State, dwAttribsLast;
-    HWND hwndDir, hwnd, hwndView;
+    HWND hwndDir, hwnd; //, hwndView;
     WCHAR szName[MAXPATHLEN];
     WCHAR szPath[MAXPATHLEN];
     WCHAR szTemp[MAXPATHLEN + 20];
@@ -1245,12 +1245,12 @@ INT InitPropertiesDialog(HWND hDlg)
     if (hwndDir)
     {
         hwndLB = GetDlgItem(hwndDir, IDCW_LISTBOX);
-        hwndView = hwndDir;
+        //hwndView = hwndDir;
     }
     else
     {
         hwndLB = GetDlgItem(hwndActive, IDCW_LISTBOX);
-        hwndView = hwndActive;
+        //hwndView = hwndActive;
     }
 
     iMac = SendMessage(hwndLB, LB_GETCOUNT, 0, 0L);

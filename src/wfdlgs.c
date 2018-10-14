@@ -63,7 +63,7 @@ DO_AGAIN:
     for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
     {
         HWND ht = HasTreeWindow(hwnd);
-        INT nReadLevel = ht ? GetWindowLongPtr(ht, GWL_READLEVEL) : 0;
+        //INT nReadLevel = ht ? GetWindowLongPtr(ht, GWL_READLEVEL) : 0;
 
         // don't save MDI icon title windows or search windows,
         // or any dir window which is currently recursing

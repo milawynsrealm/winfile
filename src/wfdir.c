@@ -62,13 +62,14 @@ VOID DrawItem(HWND hwnd,
 
     LPXDTA lpxdta  = (LPXDTA)lpLBItem->itemData;
     LPXDTALINK lpStart = (LPXDTALINK)GetWindowLongPtr(hwnd, GWL_HDTA);
+    BOOL bLower;
 
     HDC hDC = lpLBItem->hDC;
+    //HWND hwndListParms;
 
     PreserveBitmapInRTL(hDC);
 
-    HWND hwndListParms = (HWND)GetWindowLongPtr(hwnd, GWL_LISTPARMS);
-    BOOL bLower;
+    //hwndListParms = (HWND)GetWindowLongPtr(hwnd, GWL_LISTPARMS);
 
     //
     // Print out any errors
@@ -144,8 +145,8 @@ VOID DrawItem(HWND hwnd,
     y = lpLBItem->rcItem.top + (dyHeight/2);
 
     bLower = ((wTextAttribs & TA_LOWERCASE) &&
-            (lpxdta->dwAttrs & ATTR_LOWERCASE) ||
-            wTextAttribs & TA_LOWERCASEALL);
+             ((lpxdta->dwAttrs & ATTR_LOWERCASE) ||
+               wTextAttribs & TA_LOWERCASEALL));
 
     if (lpxdta->byBitmap == BM_IND_DIRUP)
         szBuf[0] = CHAR_NULL;
@@ -256,7 +257,8 @@ FocusOnly:
         {
             HBRUSH hbr;
 
-            if (hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT)))
+            hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT));
+            if (hbr != NULL)
             {
                 rc = lpLBItem->rcItem;
                 rc.right = max(rc.right,
@@ -409,9 +411,9 @@ LRESULT CALLBACK DirWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     WCHAR szTemp[MAXPATHLEN * 2];
     HWND hwndParent = GetParent(hwnd);
 
-    static HWND   hwndOwnerDraw = NULL;
-
 #ifdef PROGMANHSCROLL
+    static HWND hwndOwnerDraw = NULL;
+
     //
     // If  the window is different and uMsg == WM_DRAWITEM   _OR_
     //     the window is the same and uMsg != WM_DRAWITEM
@@ -566,10 +568,14 @@ LRESULT CALLBACK DirWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             ModifyWatchList(hwndParent, NULL, 0);
 
             if (hwndLB == GetFocus())
-                if (hwndTree = HasTreeWindow(hwndParent))
+            {
+                hwndTree = HasTreeWindow(hwndParent);
+                if (hwndTree != NULL)
                     SetFocus(hwndTree);
+            }
 
-            if (hMem = (HANDLE)GetWindowLongPtr(hwnd, GWL_TABARRAY))
+            hMem = (HANDLE)GetWindowLongPtr(hwnd, GWL_TABARRAY);
+            if (hMem != NULL)
                 LocalFree(hMem);
 
             FreeSelInfo((PSELINFO)GetWindowLongPtr(hwnd, GWL_SELINFO));
@@ -1798,12 +1804,13 @@ INT PutSize(PLARGE_INTEGER pqSize, LPWSTR szOutStr)
     NumFmt.lpThousandSep = szComma;
     NumFmt.NegativeOrder = 1;
 
-    if ( Size = GetNumberFormatW(GetUserDefaultLCID(),
+    Size = GetNumberFormatW(GetUserDefaultLCID(),
                                  0,
                                  szBuffer,
                                  &NumFmt,
                                  szOutStr,
-                                 MAXFILENAMELEN))
+                                 MAXFILENAMELEN);
+    if (Size != 0)
     {
         /*
          *  Return the size (without the null terminator).
@@ -2903,8 +2910,9 @@ BOOL SetSelection(HWND hwndLB, LPXDTALINK lpStart, LPWSTR pszSel)
     WCHAR szFile[MAXPATHLEN];
     BOOL bDidSomething = FALSE;
 
-    while (pszSel = GetNextFile(pszSel, szFile, COUNTOF(szFile)))
+    while (pszSel != NULL)
     {
+        pszSel = GetNextFile(pszSel, szFile, COUNTOF(szFile));
         i = DirFindIndex(hwndLB, lpStart, szFile);
 
         if (i != -1)
@@ -3251,7 +3259,7 @@ VOID SortDirList(HWND hwndDir, LPXDTALINK lpStart, DWORD count, LPXDTA* lplpxdta
 // Return whether focus needs to be set to directory window.
 BOOL SetDirFocus(HWND hwndDir)
 {
-    HWND hwndLB = GetDlgItem(hwndDir, IDCW_LISTBOX);
+    //HWND hwndLB = GetDlgItem(hwndDir, IDCW_LISTBOX);
 
     HWND hwndFocus;
     HWND hwndTree;

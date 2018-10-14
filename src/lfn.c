@@ -197,27 +197,7 @@ BOOL WFIsDir(LPTSTR lpDir)
     return FALSE;
 }
 
-/* GetNameType -
- *
- *  Shell around LFNParse.  Classifies name.
- *
- *  NOTE: this should work on unqualified names.  currently this isn't
- *        very useful.
- */
-DWORD GetNameType(LPTSTR lpName)
-{
-    if (CHAR_COLON == *(lpName+1))
-    {
-        if (!IsLFNDrive(lpName))
-            return FILE_83_CI;
-    }
-    else if(IsFATName(lpName))
-        return FILE_83_CI;
-
-    return(FILE_LONG);
-}
-
-#if 0
+#if 1
 BOOL IsLFNDrive(LPTSTR szDrive)
 {
     DRIVE drive = DRIVEID(szDrive);
@@ -292,6 +272,26 @@ BOOL IsLFNDrive(LPTSTR szDrive)
     }
 }
 #endif
+
+/* GetNameType -
+ *
+ *  Shell around LFNParse.  Classifies name.
+ *
+ *  NOTE: this should work on unqualified names.  currently this isn't
+ *        very useful.
+ */
+DWORD GetNameType(LPTSTR lpName)
+{
+    if (CHAR_COLON == *(lpName+1))
+    {
+        if (!IsLFNDrive(lpName))
+            return FILE_83_CI;
+    }
+    else if(IsFATName(lpName))
+        return FILE_83_CI;
+
+    return(FILE_LONG);
+}
 
 BOOL IsFATName(IN LPTSTR FileName)
 /*++

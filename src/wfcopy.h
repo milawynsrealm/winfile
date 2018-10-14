@@ -32,9 +32,7 @@
 #define ATTR_DELSRC       0x800 /* delete the source when done */
 
 typedef struct _copyroot {
-#ifdef FASTMOVE
    BOOL    fRecurse  : 1;
-#endif
    BOOL    bFastMove : 1;
    WORD    cDepth;
    LPTSTR  pSource;

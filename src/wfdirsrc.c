@@ -11,8 +11,8 @@
 #include "wfdrop.h"
 #include <commctrl.h>
 
-#define DO_DROPFILE 0x454C4946L
-#define DO_PRINTFILE 0x544E5250L
+//#define DO_DROPFILE 0x454C4946L
+//#define DO_PRINTFILE 0x544E5250L
 #define DO_DROPONDESKTOP 0x504D42L
 
 HWND hwndGlobalSink = NULL;
@@ -383,10 +383,12 @@ DragLoopCont:
     // hack, set the cursor to match the move/copy state
     //
     if (wParam)
+    {
         if (bForceMoveCur)
             SetCursor(LoadCursor(hAppInstance, (LPTSTR) MAKEINTRESOURCE(iCurDrag & ~1)));
         else
             SetCursor(GetMoveCopyCursor());
+    }
 }
 
 /////////////////////////////////////////////////////////////////////

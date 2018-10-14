@@ -1,2 +1,2 @@
-# Comment this if you don't want to build in the ReactOS Build Environment
+#TODO: Add support for build environments other than ReactOS.
 include(reactos.cmake)

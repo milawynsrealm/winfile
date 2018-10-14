@@ -792,7 +792,8 @@ DoConfigWinIni:
                     // Request refresh
                     SetWindowLongPtr(hDlg, GWLP_USERDATA, 1L);
 
-                    goto Done;
+                    RegFlushKey(HKEY_CLASSES_ROOT);
+                    return (TRUE);
                 }
 
                 //
@@ -857,7 +858,6 @@ DoConfigWinIni:
                 SetWindowLongPtr(hDlg, GWLP_USERDATA, 1L);
 
                 // Flush it!
-Done:
                 RegFlushKey(HKEY_CLASSES_ROOT);
             }
             // FALL THROUGH
@@ -1783,7 +1783,8 @@ BOOL ClassesRead(HKEY hKey, LPWSTR lpszSubKey, PFILETYPE *ppFileTypeBase, PEXT *
 
         // Now add to pFileTypeBase or pExtBase
 
-        if (bFileType = (CHAR_DOT != szIdent[0]))
+        bFileType = (CHAR_DOT != szIdent[0]);
+        if (!bFileType)
         {
             //
             // It's a file type
@@ -2295,7 +2296,7 @@ DWORD FileTypeRead(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo)
 //
 //
 /////////////////////////////////////////////////////////////////////
-DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY hk, LWTSTR lpszKey)
+DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY hk, LPWSTR lpszKey)
 {
     INT i;
     PFILETYPE pFileType = pAssociateFileDlgInfo->pFileType;
@@ -2343,7 +2344,8 @@ DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY
         if (p)
             *p = CHAR_NULL;
 
-        if (dwError = FileTypeAddString(pFileType, szFileManPrefix, &pFileType->uDesc))
+        dwError = FileTypeAddString(pFileType, szFileManPrefix, &pFileType->uDesc);
+        if (dwError != ERROR_SUCCESS)
             goto Error;
 
         //
@@ -2352,7 +2354,8 @@ DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY
 
         pFileType->uDesc--;
 
-        if (dwError = FileTypeAddString(pFileType, szDesc, &pFileType->uDesc))
+        dwError = FileTypeAddString(pFileType, szDesc, &pFileType->uDesc);
+        if (dwError != ERROR_SUCCESS)
             goto Error;
 
         //
@@ -2388,7 +2391,8 @@ DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY
     GetDlgItemText(hDlg, IDD_DESC, szDesc, COUNTOF(szDesc));
 
     uOffset = pFileType->uDesc;
-    if (dwError = FileTypeAddString(pFileType, szDesc, &uOffset))
+    dwError = FileTypeAddString(pFileType, szDesc, &uOffset);
+    if (dwError != ERROR_SUCCESS)
         goto Error;
 
     //
@@ -2431,9 +2435,9 @@ DWORD FileTypeWrite(HWND hDlg, PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, HKEY
 
     uOffset = pFileType->uExe;
 
-    if (dwError = FileTypeAddString(pFileType,
-        pAssociateFileDlgInfo->DDEInfo[0].szCommand, &uOffset))
-            goto Error;
+    dwError = FileTypeAddString(pFileType, pAssociateFileDlgInfo->DDEInfo[0].szCommand, &uOffset);
+    if (dwError != ERROR_SUCCESS)
+        goto Error;
 
     // Write out friendly name (desc)
     // Add +1?  cf. other RegSetValues!
@@ -2500,31 +2504,31 @@ Error:
 
 // lSize => _byte_ count, not character count
 
-#define REGREAD(str)                                                       \
-    {                                                                      \
-        HKEY _hkey;                                                        \
-                                                                           \
-        str[0] = CHAR_NULL;                                                \
-        lSize = sizeof(str);                                               \
-        dwError = 0;                                                       \
-        if (RegOpenKey(HKEY_CLASSES_ROOT, szKey, &_hkey) == ERROR_SUCCESS) \
-        {                                                                  \
-            dwError = (DWORD)RegQueryValueEx( _hkey,                       \
-                                              TEXT(""),                    \
-                                              NULL,                        \
-                                              NULL,                        \
-                                              (LPBYTE)str,                 \
-                                              &lSize );                    \
-            RegCloseKey(_hkey);                                            \
-        }                                                                  \
+VOID REGREAD(LPWSTR str, LPWSTR szKey, DWORD dwError)
+{
+    HKEY hkey;
+    DWORD lSize;
+
+    str[0] = CHAR_NULL;
+    lSize = sizeof(str);
+    dwError = 0;
+    if (RegOpenKey(HKEY_CLASSES_ROOT, szKey, &hkey) == ERROR_SUCCESS)
+    {
+        dwError = (DWORD)RegQueryValueExW(hkey,
+                                          L"",
+                                          NULL,
+                                          NULL,
+                                          (LPBYTE)str,
+                                          &lSize);
+        RegCloseKey(hkey);
     }
+}
 
 DWORD
 DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 {
     WCHAR szKey[MAX_PATH];
     INT iPoint;
-    LONG lSize;
     DWORD dwError;
     LPTSTR p, p2;
 
@@ -2540,13 +2544,13 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 
     lstrcat(szKey, szCommand);
 
-    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szCommand);
+    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szCommand, szKey, dwError);
 
     ERRORCHECK;
 
     lstrcpy(&szKey[iPoint],szDDEExec);
 
-    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDEMesg);
+    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDEMesg, szKey, dwError);
 
     ERRORCHECK;
     BUSESDDECHECK;
@@ -2554,7 +2558,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
     iPoint = lstrlen(szKey);
     lstrcat(szKey, szApp);
 
-    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDEApp);
+    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDEApp, szKey, dwError);
 
     ERRORCHECK;
     BUSESDDECHECK;
@@ -2588,7 +2592,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 
     lstrcpy(&szKey[iPoint],szTopic);
 
-    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDETopic);
+    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDETopic, szKey, dwError);
 
     ERRORCHECK;
     BUSESDDECHECK;
@@ -2600,7 +2604,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 
     lstrcpy(&szKey[iPoint],szIFExec);
 
-    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDENotRun);
+    REGREAD(pAssociateFileDlgInfo->DDEInfo[i].szDDENotRun, szKey, dwError);
 
     ERRORCHECK;
     BUSESDDECHECK;
@@ -2610,7 +2614,6 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 
 #undef ERRORCHECK
 #undef BUSESDDECHECK
-#undef REGREAD
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -3506,7 +3509,6 @@ VOID FileAssociateErrorCheck(HWND hwnd, UINT idsTitle, UINT idsText, DWORD dwErr
 /////////////////////////////////////////////////////////////////////
 BOOL AssociateDlgInit(HWND hDlg, LPTSTR lpszExt, INT iSel)
 {
-    INT iItem;
     PEXT pExtBuf;
     PEXT pExtNext;
     PFILETYPE pFileType;
@@ -3549,7 +3551,7 @@ BOOL AssociateDlgInit(HWND hDlg, LPTSTR lpszExt, INT iSel)
         if (!pExtBuf->bDelete)
         {
             CharLower(&pExtBuf->szExt[1]);
-            iItem = (INT) SendDlgItemMessage(hDlg,IDD_EXT, CB_ADDSTRING,0,(LPARAM)&pExtBuf->szExt[1]);
+            SendDlgItemMessage(hDlg,IDD_EXT, CB_ADDSTRING,0,(LPARAM)&pExtBuf->szExt[1]);
         }
     }
 

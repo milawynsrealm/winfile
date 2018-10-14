@@ -52,7 +52,7 @@ static UINT uExtraCommands[] =
 /* Note that the idsHelp field is used internally to determine if the
  * button is "available" or not.
  */
-static TBBUTTON tbButtons[] =
+static const TBBUTTON tbButtons[] =
 {
     { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
     { 0, IDM_CONNECTIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
@@ -75,7 +75,7 @@ static TBBUTTON tbButtons[] =
     {12, IDM_MOVE       , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
     {13, IDM_DELETE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
     { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    {27, IDM_PERMISSIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
+    {27, IDM_PERMISSIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 }
 };
 
 #define ICONNECTIONS 1  /* Index of the Connections button */
@@ -124,7 +124,7 @@ static struct {
     IDM_HELPINDEX,        25,
 
     IDM_COMPRESS,         28,
-    IDM_UNCOMPRESS,       29,
+    IDM_UNCOMPRESS,       29
 };
 
 /* Actually, EXTRA_BITMAPS is an upper bound on the number of bitmaps, since
@@ -156,6 +156,7 @@ typedef struct
 } TBSAVEITEM;
 
 VOID AddExtensionToolbarButtons(BOOL bAll);
+Static VOID LoadDesc(UINT uID, LPWSTR lpDesc);
 
 Static VOID
 ExtensionName(int i, LPTSTR szName)
@@ -320,8 +321,8 @@ BuildDriveLine(LPWSTR* ppszTemp, DRIVEIND driveInd, BOOL fGetFloppyLabel, DWORD 
     if (fGetFloppyLabel || (!IsRemovableDrive(drive) && !IsCDRomDrive(drive)) ||
        (aDriveInfo[drive].sVolInfo.bValid && !aDriveInfo[drive].sVolInfo.bRefresh))
     {
-
-        if (dwError = GetVolShare(rgiDrive[driveInd], ppszTemp, dwType))
+        dwError = GetVolShare(rgiDrive[driveInd], ppszTemp, dwType);
+        if (dwError != ERROR_SUCCESS)
         {
             if (DE_REGNAME == dwError)
                 goto UseRegName;
@@ -439,7 +440,7 @@ PaintDriveLine(DRAWITEMSTRUCT FAR *lpdis)
     LPWSTR pchTab;
     RECT rc = lpdis->rcItem;
     DRIVE drive;
-    INT dxTabstop=MINIDRIVE_WIDTH;
+    //INT dxTabstop=MINIDRIVE_WIDTH;
     HBRUSH hbrFill;
     HFONT hfontOld;
     DWORD clrBackground;
@@ -571,8 +572,7 @@ Static VOID ResetToolbar(void)
         EnableStopShareButton();
 }
 
-
-Static VOID LoadDesc(UINT uID, LPWTSTR lpDesc)
+Static VOID LoadDesc(UINT uID, LPWSTR lpDesc)
 {
     HMENU hMenu;
     UINT uMenu;
@@ -621,7 +621,6 @@ Static VOID LoadDesc(UINT uID, LPWTSTR lpDesc)
             break;
     }
 }
-
 
 Static BOOL GetAdjustInfo(LPTBNOTIFY lpTBNotify)
 {
@@ -689,11 +688,12 @@ HandleToolbarSave(LPNMTBSAVE lpnmtSave)
 {
     if (lpnmtSave->iItem == -1)
     {
+        TBSAVEHDR hdr;
+
         lpnmtSave->cbData = lpnmtSave->cbData + sizeof(TBSAVEHDR) + sizeof(TBSAVEITEM) * lpnmtSave->cButtons;
         lpnmtSave->pCurrent = lpnmtSave->pData = LocalAlloc(LPTR, lpnmtSave->cbData);
 
         // save global values: magic number, version and cButtons
-        TBSAVEHDR hdr;
         hdr.magic = TBHDR_MAGIC;
         hdr.version = TBHDR_VERSION;
         hdr.cButtons = lpnmtSave->cButtons;
@@ -731,9 +731,10 @@ BOOL HandleToolbarRestore(LPNMTBRESTORE lpnmtRestore)
 {
     if (lpnmtRestore->iItem == -1)
     {
+        TBSAVEHDR *phdr;
         lpnmtRestore->cbBytesPerRecord = sizeof(TBSAVEITEM);
         lpnmtRestore->tbButton.idCommand = 0;
-        TBSAVEHDR *phdr = (TBSAVEHDR *)lpnmtRestore->pData;
+        *phdr = (TBSAVEHDR *)lpnmtRestore->pData;
         if (phdr->magic == TBHDR_MAGIC && phdr->version == TBHDR_VERSION)
         {
             // only restore if magic value matches; fetch cButtons too
@@ -811,6 +812,8 @@ DWORD DriveListMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, UINT* puiRetVal)
 
             if (fuFlags&MF_POPUP)
             {
+                INT idm;
+
                 hMenu = GetSubMenu(hMenu2, uItem);
 
                 for (iExt=iNumExtensions-1; iExt>=0; --iExt)
@@ -843,7 +846,7 @@ ExtensionHelp:
                 }
 
                 // NormalHelp with MF_POPUP case; fix up ids to workaround some bugs in MenuHelp
-                INT idm = MapMenuPosToIDM(uItem);
+                idm = MapMenuPosToIDM(uItem);
                 dwMenuIDs[MHPOP_CURRENT] = MH_POPUP + idm;
                 dwMenuIDs[MHPOP_CURRENT+1] = uItem;
 
@@ -1401,7 +1404,7 @@ AddSep:
 VOID
 AddExtensionToolbarButtons(BOOL bAll)
 {
-    INT nExtButtons;
+    INT nExtButtons, nItem, iExt;
     TBBUTTON tbButton;
     BOOL bLastSep;
 
@@ -1411,7 +1414,7 @@ AddExtensionToolbarButtons(BOOL bAll)
     bLastSep = LastButtonIsSeparator(hwndToolbar);
 
     nExtButtons = (INT)SendMessage(hwndExtensions, TB_BUTTONCOUNT, 0, 0L);
-    for (INT nItem = 0; nItem < nExtButtons; ++nItem)
+    for (nItem = 0; nItem < nExtButtons; ++nItem)
     {
         SendMessage(hwndExtensions, TB_GETBUTTON, nItem,
             (LPARAM)(LPTBBUTTON)&tbButton);
@@ -1423,7 +1426,7 @@ AddExtensionToolbarButtons(BOOL bAll)
         }
 
         // map idCommand and iBitmap if this is a valid extension
-        INT iExt = tbButton.dwData - 1;
+        iExt = tbButton.dwData - 1;
         if ((UINT)iExt < (UINT)iNumExtensions)
         {
             // if we are not loading them all and this button's extension was seen during toolbar restore, skip
@@ -1495,7 +1498,7 @@ VOID SaveRestoreToolbar(BOOL bSave)
     }
     else
     {
-        INT iExt;
+        INT iExt, nCurButtons;
         BOOL bRestored;
         LPWSTR pName, pEnd;
 
@@ -1537,7 +1540,7 @@ VOID SaveRestoreToolbar(BOOL bSave)
 
         // TB_SAVERESTORE does not return a boolean (as the code once showed);
         // we check for restoration by checking for a change in the number of buttons.
-        INT nCurButtons = (int)SendMessage(hwndToolbar, TB_BUTTONCOUNT, 0, 0L);
+        nCurButtons = (int)SendMessage(hwndToolbar, TB_BUTTONCOUNT, 0, 0L);
 
         tbSave.hkr = HKEY_CURRENT_USER;
         tbSave.pszSubKey = szSubKey;

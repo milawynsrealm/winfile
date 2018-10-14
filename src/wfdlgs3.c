@@ -294,7 +294,6 @@ DoHelp:
 
 VOID FormatDiskette(HWND hwnd, BOOL bModal)
 {
-    INT res = 0;
     DWORD dwSave;
 
     // in case current drive is on floppy
@@ -306,7 +305,7 @@ VOID FormatDiskette(HWND hwnd, BOOL bModal)
 
     CancelInfo.bModal = bModal;
 
-    res = DialogBox(hAppInstance, (LPTSTR) MAKEINTRESOURCE(FORMATDLG), hwnd, FormatDlgProc);
+    DialogBox(hAppInstance, (LPTSTR) MAKEINTRESOURCE(FORMATDLG), hwnd, FormatDlgProc);
 
     dwContext = dwSave;
 }
@@ -757,7 +756,7 @@ INT_PTR CALLBACK FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPA
     }
 
     default:
-
+    {
         if (wMsg == wHelpMessage)
         {
 DoHelp:
