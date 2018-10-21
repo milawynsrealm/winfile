@@ -381,7 +381,7 @@ VOID EnableCopy(HWND hDlg, BOOL bCopy)
     if (hwnd)
     {
         EnableWindow(hwnd, !bCopy);
-        ShwWindow(hwnd, !bCopy ? SW_SHOWNA : SW_HIDE);
+        ShowWindow(hwnd, !bCopy ? SW_SHOWNA : SW_HIDE);
     }
 }
 
@@ -403,7 +403,7 @@ VOID MessWithRenameDirPath(LPTSTR pszPath)
 
     lpsz = (CHAR_DQUOTE == pszPath[0]) ? pszPath+1 : pszPath;
 
-    if (CHAR_COLON == lpsz[1] && CHAR_BACKSLASH == lpsz[2] ||
+    if ((CHAR_COLON == lpsz[1] && CHAR_BACKSLASH == lpsz[2]) ||
         lstrlen(pszPath) > (COUNTOF(szPath) - 4))
             return;
 
@@ -534,7 +534,7 @@ JAPANEND
 
                 driveCur = GetWindowLongPtr(hwndActive, GWL_TYPE);
 
-                lstrcpy(szDirs, TEXT("Other: "));
+                lstrcpy(szDirs, L"Other: ");
 
                 GetAllDirectories(rgszDirs);
 
@@ -543,13 +543,13 @@ JAPANEND
                     if (drive != driveCur && rgszDirs[drive] != NULL)
                     {
                         if (!fFirst)
-                            wcsncat_s(szDirs, MAXPATHLEN, TEXT(";"), 1);
+                            wcsncat(szDirs, L";", 1); //wcsncat_s
 
                         fFirst = FALSE;
 
                         // NOTE: this call may truncate the result that goes in szDirs,
                         // but due to the limited width of the dialog, we can't see it all anyway.
-                        wcsncat_s(szDirs, MAXPATHLEN, rgszDirs[drive], _TRUNCATE);
+                        wcsncat(szDirs, rgszDirs[drive], _TRUNCATE); //wcsncat_s
 
                         LocalFree(rgszDirs[drive]);
                     }
@@ -608,7 +608,10 @@ JAPANEND
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
                 case IDD_HELP:
-                    goto DoHelp;
+                {
+                    WFHelp(hDlg);
+                    return TRUE;
+                }
 
                 case IDCANCEL:
                 {
@@ -735,22 +738,25 @@ Error:
                     }
                     break;
                 }
-            }
 
-            default:
-                return(FALSE);
-            break;
+                default:
+                {
+                    return(FALSE);
+                    break;
+                }
+            }
         }
 
         default:
+        {
             if (wMsg == wHelpMessage)
             {
-DoHelp:
                 WFHelp(hDlg);
                 return TRUE;
             }
             else
                 return FALSE;
+        }
     }
    return TRUE;
 }

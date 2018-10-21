@@ -392,6 +392,35 @@ VOID UpdateSelectionExt(HWND hDlg, BOOL bForce)
     ValidateClass(hDlg);
 }
 
+VOID AssociateDlgCancel(HWND hDlg)
+{
+    HWND hwndNext, hwndT;
+
+    //
+    // If refresh request, then do it.
+    //
+    if (GetWindowLongPtr(hDlg, GWLP_USERDATA))
+    {
+        BuildDocumentString();
+
+        // Update all of the Directory Windows in order to see
+        // the effect of the new extensions.
+
+        hwndT = GetWindow(hwndMDIClient, GW_CHILD);
+        while (hwndT)
+        {
+            hwndNext = GetWindow(hwndT, GW_HWNDNEXT);
+            if (!GetWindow(hwndT, GW_OWNER))
+                SendMessage(hwndT, WM_FSC, FSC_REFRESH, 0L);
+            hwndT = hwndNext;
+        }
+    }
+
+    // Free up class list
+    RegUnload();
+
+    EndDialog(hDlg, TRUE);
+}
 
 //--------------------------------------------------------------------------
 //
@@ -747,7 +776,10 @@ DoConfigWinIni:
                 ExtClean(szExt);
 
                 if (!szExt[1])
-                    goto Cancel;
+                {
+                    AssociateDlgCancel(hDlg);
+                    break;
+                }
 
                 //
                 // Now make sure it isn't a program extension
@@ -864,33 +896,7 @@ DoConfigWinIni:
 
             case IDCANCEL:
             {
-Cancel:
-                HWND hwndNext, hwndT;
-
-                //
-                // If refresh request, then do it.
-                //
-                if (GetWindowLongPtr(hDlg, GWLP_USERDATA))
-                {
-                    BuildDocumentString();
-
-                    // Update all of the Directory Windows in order to see
-                    // the effect of the new extensions.
-
-                    hwndT = GetWindow(hwndMDIClient, GW_CHILD);
-                    while (hwndT)
-                    {
-                        hwndNext = GetWindow(hwndT, GW_HWNDNEXT);
-                        if (!GetWindow(hwndT, GW_OWNER))
-                            SendMessage(hwndT, WM_FSC, FSC_REFRESH, 0L);
-                        hwndT = hwndNext;
-                    }
-                }
-
-                // Free up class list
-                RegUnload();
-
-                EndDialog(hDlg, TRUE);
+                AssociateDlgCancel(hDlg);
                 break;
             }
 
@@ -2530,7 +2536,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
     WCHAR szKey[MAX_PATH];
     INT iPoint;
     DWORD dwError;
-    LPTSTR p, p2;
+    LPWSTR p, p2;
 
     pAssociateFileDlgInfo->DDEInfo[i].bUsesDDE = FALSE;
 
@@ -2587,7 +2593,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
         StripPath(p2);
 
         if (*p2)
-            *p2=(WCHAR)CharUpper((LPTSTR)*p2);
+            *p2 = CharUpper((LPWSTR)*p2);
     }
 
     lstrcpy(&szKey[iPoint],szTopic);

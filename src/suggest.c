@@ -10,7 +10,7 @@
 ********************************************************************/
 
 #include "winfile.h"
-
+#if 0
 //
 // Create array
 //
@@ -20,7 +20,7 @@ DWORD adwSuggest[][3] = {
    0,0,0
 };
 #undef SUGGEST
-
+#endif
 
 /////////////////////////////////////////////////////////////////////
 //
@@ -184,7 +184,7 @@ PDWORD
 FormatSuggest( DWORD dwError )
 {
     PDWORD pdwReturn = NULL;
-    INT i;
+    //INT i;
 
     // If error == 0, just return...
     if (!dwError)
@@ -208,6 +208,7 @@ FormatSuggest( DWORD dwError )
       // no break
         default:
         {
+#if 0
             for (i=0;adwSuggest[i][0]; i++)
             {
                 if ( adwSuggest[i][0] == dwError )
@@ -216,6 +217,7 @@ FormatSuggest( DWORD dwError )
                     break;
                 }
             }
+#endif
         }
    }
 

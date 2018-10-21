@@ -62,7 +62,7 @@ DO_AGAIN:
 
     for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
     {
-        HWND ht = HasTreeWindow(hwnd);
+        //HWND ht = HasTreeWindow(hwnd);
         //INT nReadLevel = ht ? GetWindowLongPtr(ht, GWL_READLEVEL) : 0;
 
         // don't save MDI icon title windows or search windows,
@@ -185,7 +185,8 @@ INT_PTR CALLBACK OtherDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPAR
 
                     EndDialog(hDlg, TRUE);
 
-                    if (hwnd = HasDirWindow(hwndActive))
+                    hwnd = HasDirWindow(hwndActive);
+                    if (hwnd)
                         SendMessage(hwnd, FS_CHANGEDISPLAY, CD_VIEW, dwView);
                     else if (hwndActive == hwndSearch)
                     {
@@ -300,7 +301,8 @@ INT_PTR CALLBACK IncludeDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPar
                     // we need to update the tree if they changed the system/hidden
                     // flags.  ...  FIX31
 
-                    if (hwndDir = HasDirWindow(hwndActive))
+                    hwndDir = HasDirWindow(hwndActive);
+                    if (hwndDir)
                     {
                         SendMessage(hwndDir, FS_GETDIRECTORY, COUNTOF(szTemp), (LPARAM)szTemp);
                         lstrcat(szTemp, szInclude);
@@ -385,8 +387,12 @@ INT_PTR CALLBACK SelectDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPara
                     {
                         p = szList;
 
-                        while (p = GetNextFile(p, szSpec, COUNTOF(szSpec)))
+                        while (p)
+                        {
+                            p = GetNextFile(p, szSpec, COUNTOF(szSpec));
                             SendMessage(hwnd, FS_SETSELECTION, (BOOL)(GET_WM_COMMAND_ID(wParam, lParam) == IDOK), (LPARAM)szSpec);
+                        }
+                            
                     }
 
                     if (hwnd != hwndSearch)
@@ -500,7 +506,7 @@ VOID NewFont()
     CHOOSEFONT cf;
     WCHAR szBuf[10];
     INT res;
-    UINT uOld,uNew;
+    //UINT uOld,uNew;
 
 #define MAX_PT_SIZE 36
 
@@ -524,7 +530,7 @@ VOID NewFont()
         lf.lfHeight = -(tm.tmHeight-tm.tmInternalLeading);
     }
 
-    uOld = (UINT)abs(lf.lfHeight);
+    //uOld = (UINT)abs(lf.lfHeight);
 
     cf.lStructSize    = sizeof(cf);
     cf.hwndOwner      = hwndFrame;
@@ -554,7 +560,7 @@ VOID NewFont()
 
     wsprintf(szBuf, SZ_PERCENTD, cf.iPointSize / 10);
 
-    uNew = (UINT)abs(lf.lfHeight);
+    //uNew = (UINT)abs(lf.lfHeight);
 
     if (bJAPAN && lf.lfCharSet != SHIFTJIS_CHARSET)
         MyMessageBox(hwndFrame, IDS_WINFILE, IDS_WRNNOSHIFTJIS,
@@ -617,7 +623,8 @@ VOID NewFont()
         }
         else
         {
-            if (hwndT = HasDirWindow(hwnd))
+            hwndT = HasDirWindow(hwnd);
+            if (hwndT)
             {
                 hwndT2 = GetDlgItem(hwndT, IDCW_LISTBOX);
                 SetLBFont(hwndT,
@@ -629,7 +636,8 @@ VOID NewFont()
                 InvalidateRect(hwndT2, NULL, TRUE);
             }
 
-            if (hwndT = HasTreeWindow(hwnd))
+            hwndT = HasTreeWindow(hwnd);
+            if (hwndT)
             {
                 // the tree list box
 
@@ -728,14 +736,15 @@ DoHelp:
 
 INT_PTR CALLBACK PrefDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
 {
+    HWND hLangComboBox;
+    OPENFILENAME ofn;
+
     /* Editor prefrence variables*/
     WCHAR szTempEditPath[MAX_PATH];
     WCHAR szPath[MAX_PATH];
     WCHAR szFilter[MAX_PATH] = { 0 };
 
     LoadString(hAppInstance, IDS_EDITFILTER, szFilter, MAX_PATH);
-
-    OPENFILENAME ofn;
 
     ZeroMemory(&ofn, sizeof(ofn));
     ofn.lStructSize = sizeof(ofn);
@@ -751,7 +760,7 @@ INT_PTR CALLBACK PrefDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
     /* Language prefrence variables */
-    HWND hLangComboBox = GetDlgItem(hDlg, IDC_LANGCB);
+    hLangComboBox = GetDlgItem(hDlg, IDC_LANGCB);
 
     switch (wMsg)
     {
@@ -864,68 +873,69 @@ VOID KillQuoteTrailSpace(LPWSTR szFile)
     // Delimit!
     *pc = CHAR_NULL;
 
-    // Now axe trailing spaces;
+    // Now remove trailing spaces;
     if (pcLastSpace)
         *pcLastSpace = CHAR_NULL;
 }
 
 VOID ActivateCommonContextMenu(HWND hwnd, HWND hwndLB, LPARAM lParam)
 {
-	DWORD cmd, item;
-	POINT pt;
+    DWORD cmd, item;
+    POINT pt;
 
-	HMENU hMenu = GetSubMenu(LoadMenu(hAppInstance, TEXT("CTXMENU")), 0);
+    HMENU hMenu = GetSubMenu(LoadMenu(hAppInstance, TEXT("CTXMENU")), 0);
 
-	if (lParam == -1)
-	{
-		RECT rect;
+    if (lParam == -1)
+    {
+        RECT rect;
 
-		item = SendMessage(hwndLB, LB_GETCURSEL, 0, 0);
-		SendMessage(hwndLB, LB_GETITEMRECT, (WPARAM)LOWORD(item), (LPARAM)&rect);
-		pt.x = rect.left;
-		pt.y = rect.bottom;
-		ClientToScreen(hwnd, &pt);
-		lParam = POINTTOPOINTS(pt);
-	}
-	else
-	{
-		POINTSTOPOINT(pt, lParam);
+        item = SendMessage(hwndLB, LB_GETCURSEL, 0, 0);
+        SendMessage(hwndLB, LB_GETITEMRECT, (WPARAM)LOWORD(item), (LPARAM)&rect);
+        pt.x = rect.left;
+        pt.y = rect.bottom;
+        ClientToScreen(hwnd, &pt);
+        lParam = POINTTOPOINTS(pt);
+    }
+    else
+    {
+        POINTSTOPOINT(pt, lParam);
 
-		ScreenToClient(hwndLB, &pt);
-		item = SendMessage(hwndLB, LB_ITEMFROMPOINT, 0, POINTTOPOINTS(pt));
+        ScreenToClient(hwndLB, &pt);
+        item = SendMessage(hwndLB, LB_ITEMFROMPOINT, 0, POINTTOPOINTS(pt));
 
-		if (HIWORD(item) == 0)
-		{
-			HWND hwndTree, hwndParent;
+        if (HIWORD(item) == 0)
+        {
+            HWND hwndTree, hwndParent;
 
-			SetFocus(hwnd);
+            SetFocus(hwnd);
 
-			hwndParent = GetParent(hwnd);
-			hwndTree = HasTreeWindow(hwndParent);
+            hwndParent = GetParent(hwnd);
+            hwndTree = HasTreeWindow(hwndParent);
 
-			// if hwnd is the tree control within the parent window
-			if (hwndTree == hwnd)
+            // if hwnd is the tree control within the parent window
+            if (hwndTree == hwnd)
             {
-				// tree control; do selection differently
-				SendMessage(hwndLB, LB_SETCURSEL, (WPARAM)item, 0L);
-				SendMessage(hwnd, WM_COMMAND, GET_WM_COMMAND_MPS(0, hwndLB, LBN_SELCHANGE));
-			}
-			else
+                // tree control; do selection differently
+                SendMessage(hwndLB, LB_SETCURSEL, (WPARAM)item, 0L);
+                SendMessage(hwnd, WM_COMMAND, GET_WM_COMMAND_MPS(0, hwndLB, LBN_SELCHANGE));
+            }
+            else
             {
-				SendMessage(hwndLB, LB_SETSEL, (WPARAM)FALSE, (LPARAM)-1);
-				SendMessage(hwndLB, LB_SETSEL, (WPARAM)TRUE, (LPARAM)item);
-
                 BOOL bDir = FALSE;
+
+                SendMessage(hwndLB, LB_SETSEL, (WPARAM)FALSE, (LPARAM)-1);
+                SendMessage(hwndLB, LB_SETSEL, (WPARAM)TRUE, (LPARAM)item);
+
                 SendMessage(hwnd, FS_GETSELECTION, 5, (LPARAM)&bDir);
                 if (bDir)
                     EnableMenuItem(hMenu, IDM_EDIT, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
             }
-		}
-	}
+        }
+    }
 
-	cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RETURNCMD, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hwnd, NULL);
-	if (cmd != 0)
-		PostMessage(hwndFrame, WM_COMMAND, GET_WM_COMMAND_MPS(cmd, 0, 0));
+    cmd = TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RETURNCMD, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), 0, hwnd, NULL);
+    if (cmd != 0)
+        PostMessage(hwndFrame, WM_COMMAND, GET_WM_COMMAND_MPS(cmd, 0, 0));
 
-	DestroyMenu(hMenu);
+    DestroyMenu(hMenu);
 }

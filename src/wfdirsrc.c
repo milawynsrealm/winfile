@@ -564,7 +564,8 @@ ClearStatus:
         else
             nColor = COLOR_WINDOWFRAME;
 
-        if (hBrush = CreateSolidBrush(GetSysColor(nColor)))
+        hBrush = CreateSolidBrush(GetSysColor(nColor));
+        if (hBrush != NULL)
         {
             FrameRect(hDC, &rc, hBrush);
             DeleteObject(hBrush);

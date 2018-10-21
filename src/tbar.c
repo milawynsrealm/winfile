@@ -30,52 +30,55 @@
 
 static HWND hwndExtensions = NULL;
 
-static DWORD dwSaveHelpContext; // saves dwContext in tbcustomize dialog
+static DWORD dwSaveHelpContext; // saves dwContext in tbcustomize dialog.
 
-static UINT uExtraCommands[] =
-{
-    IDM_CONNECT,
-    IDM_DISCONNECT,
-    IDM_CONNECTIONS,
-    IDM_SHAREAS,
-    IDM_STOPSHARE,
-    IDM_SHAREAS,
+typedef struct _EXCMDS {
+    UINT idCmd;
+} EXCMDS;
 
-    IDM_UNDELETE,
-    IDM_NEWWINONCONNECT,
-    IDM_PERMISSIONS,
-    IDM_COMPRESS,
-    IDM_UNCOMPRESS,
+static const EXCMDS uExtraCommands[] = {
+    {IDM_CONNECT},
+    {IDM_DISCONNECT},
+    {IDM_CONNECTIONS},
+    {IDM_SHAREAS},
+    {IDM_STOPSHARE},
+
+    {IDM_UNDELETE},
+    {IDM_NEWWINONCONNECT},
+    {IDM_PERMISSIONS},
+    {IDM_COMPRESS},
+    {IDM_UNCOMPRESS}
 };
-#define NUMEXTRACOMMANDS  (sizeof(uExtraCommands)/sizeof(uExtraCommands[0]))
+#define NUMEXTRACOMMANDS  (sizeof(uExtraCommands)/sizeof(uExtraCommands[0].idCmd))
 
 /* Note that the idsHelp field is used internally to determine if the
  * button is "available" or not.
  */
 static const TBBUTTON tbButtons[] =
 {
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    { 0, IDM_CONNECTIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 1, IDM_DISCONNECT , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    { 2, IDM_SHAREAS    , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 3, IDM_STOPSHARE  , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    { 4, IDM_VNAME      , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 5, IDM_VDETAILS   , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    { 6, IDM_BYNAME     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 7, IDM_BYTYPE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 8, IDM_BYSIZE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 9, IDM_BYDATE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    {10, IDM_NEWWINDOW  , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    {11, IDM_COPY       , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    {12, IDM_MOVE       , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    {13, IDM_DELETE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 },
-    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , 0 },
-    {27, IDM_PERMISSIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, 0 }
+    /* iBitmap,     idCommand,   fsState,         fsStyle,     bReserved[2], dwData, iString */
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    { 0, IDM_CONNECTIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 1, IDM_DISCONNECT , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    { 2, IDM_SHAREAS    , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 3, IDM_STOPSHARE  , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    { 4, IDM_VNAME      , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 5, IDM_VDETAILS   , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    { 6, IDM_BYNAME     , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 7, IDM_BYTYPE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 8, IDM_BYSIZE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 9, IDM_BYDATE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    {10, IDM_NEWWINDOW  , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    {11, IDM_COPY       , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    {12, IDM_MOVE       , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    {13, IDM_DELETE     , TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 },
+    { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
+    {27, IDM_PERMISSIONS, TBSTATE_ENABLED, TBSTYLE_BUTTON, {0}, 0, 0 }
 };
 
 #define ICONNECTIONS 1  /* Index of the Connections button */
@@ -83,48 +86,50 @@ static const TBBUTTON tbButtons[] =
 #define TBAR_BITMAP_COUNT 14  /* number of std toolbar bitmaps */
 #define TBAR_BUTTON_COUNT (sizeof(tbButtons)/sizeof(tbButtons[0]))
 
-static struct {
+typedef struct _BUTTONS {
     int idM;
     int idB;
-} sAllButtons[] = {
-    IDM_MOVE,             12,
-    IDM_COPY,             11,
-    IDM_DELETE,           13,
-    IDM_RENAME,           14,
-    IDM_ATTRIBS,          15,
-    IDM_PRINT,            16,
-    IDM_MAKEDIR,          17,
-    IDM_SEARCH,           18,
-    IDM_SELECT,           19,
+} BUTTONS;
 
-    IDM_CONNECT,          0,
-    IDM_DISCONNECT,       1,
-    IDM_CONNECTIONS,      0,
-    IDM_SHAREAS,          2,
-    IDM_STOPSHARE,        3,
+static const BUTTONS sAllButtons[] = {
+    {IDM_MOVE,             12},
+    {IDM_COPY,             11},
+    {IDM_DELETE,           13},
+    {IDM_RENAME,           14},
+    {IDM_ATTRIBS,          15},
+    {IDM_PRINT,            16},
+    {IDM_MAKEDIR,          17},
+    {IDM_SEARCH,           18},
+    {IDM_SELECT,           19},
 
-    IDM_VNAME,            4,
-    IDM_VDETAILS,         5,
-    IDM_VOTHER,           20,
-    IDM_VINCLUDE,         21,     /* this is out of order, but looks better */
-    IDM_BYNAME,           6,
-    IDM_BYTYPE,           7,
-    IDM_BYSIZE,           8,
-    IDM_BYDATE,           9,
+    {IDM_CONNECT,          0},
+    {IDM_DISCONNECT,       1},
+    {IDM_CONNECTIONS,      0},
+    {IDM_SHAREAS,          2},
+    {IDM_STOPSHARE,        3},
 
-    IDM_FONT,             22,
+    {IDM_VNAME,            4},
+    {IDM_VDETAILS,         5},
+    {IDM_VOTHER,           20},
+    {IDM_VINCLUDE,         21},     /* this is out of order, but looks better */
+    {IDM_BYNAME,           6},
+    {IDM_BYTYPE,           7},
+    {IDM_BYSIZE,           8},
+    {IDM_BYDATE,           9},
 
-    IDM_NEWWINDOW,        10,
-    IDM_CASCADE,          23,
-    IDM_TILEHORIZONTALLY, 24,
-    IDM_TILE,             26,
+    {IDM_FONT,             22},
 
-    IDM_PERMISSIONS,      27,
+    {IDM_NEWWINDOW,        10},
+    {IDM_CASCADE,          23},
+    {IDM_TILEHORIZONTALLY, 24},
+    {IDM_TILE,             26},
 
-    IDM_HELPINDEX,        25,
+    {IDM_PERMISSIONS,      27},
 
-    IDM_COMPRESS,         28,
-    IDM_UNCOMPRESS,       29
+    {IDM_HELPINDEX,        25},
+
+    {IDM_COMPRESS,         28},
+    {IDM_UNCOMPRESS,       29}
 };
 
 /* Actually, EXTRA_BITMAPS is an upper bound on the number of bitmaps, since
@@ -593,7 +598,7 @@ Static VOID LoadDesc(UINT uID, LPWSTR lpDesc)
         {
             if (i >= NUMEXTRACOMMANDS)
                 return;
-            if (uExtraCommands[i] == uID)
+            if (uExtraCommands[i].idCmd == uID)
                 break;
         }
 

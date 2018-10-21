@@ -664,7 +664,10 @@ INT_PTR CALLBACK FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPA
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
                 case IDD_HELP:
-                    goto DoHelp;
+                {
+                    WFHelp(hDlg);
+                    return TRUE;
+                }
 
                 case IDD_DRIVE:
                 {
@@ -708,7 +711,7 @@ INT_PTR CALLBACK FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPA
                 }
 
                 case IDOK:
-
+                {
                     CancelInfo.eCancelType = CANCEL_FORMAT;
 
                     i = (INT)SendDlgItemMessage(hDlg, IDD_DRIVE, CB_GETCURSEL, 0, 0L);
@@ -747,19 +750,19 @@ INT_PTR CALLBACK FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPA
                         DialogBox(hAppInstance, (LPTSTR) MAKEINTRESOURCE(CANCELDLG), hwndFrame, CancelDlgProc);
                     else
                         CreateDialog(hAppInstance, (LPTSTR) MAKEINTRESOURCE(CANCELDLG), hwndFrame, CancelDlgProc);
+                }
             }
             break;
         }
 
-      default:
-         return FALSE;
+        default:
+            return FALSE;
     }
 
     default:
     {
         if (wMsg == wHelpMessage)
         {
-DoHelp:
             WFHelp(hDlg);
             return TRUE;
         }
@@ -1638,7 +1641,6 @@ INT_PTR CALLBACK DrivesDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPara
 {
     DRIVEIND driveInd;
     INT iSel;
-    HWND hwndActive;
 
     UNREFERENCED_PARAMETER(lParam);
 
@@ -1682,7 +1684,7 @@ INT_PTR CALLBACK DrivesDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPara
                     iSel = (INT)SendDlgItemMessage(hDlg, IDD_DRIVE, LB_GETCURSEL, 0, 0L);
                     EndDialog(hDlg, TRUE);
 
-                    hwndActive = (HWND)SendMessage(hwndMDIClient, WM_MDIGETACTIVE, 0, 0L);
+                    (HWND)SendMessage(hwndMDIClient, WM_MDIGETACTIVE, 0, 0L);
 
                     if (hwndDriveBar)
                     {

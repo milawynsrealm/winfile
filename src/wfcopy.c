@@ -1715,13 +1715,13 @@ ReturnPair:
                         AppendToPath(pcr->szDest, FindFileName(pToPath));
                     }
 #else
-                    goto MergeNames;
+                    if (IsWild(pToPath))
+                        LFNMergePath(pToPath, FindFileName(pFrom));
 #endif
                 }
             }
             else
             {
-MergeNames:
                 if (IsWild(pToPath))
                     LFNMergePath(pToPath, FindFileName(pFrom));
             }
@@ -1735,8 +1735,7 @@ MergeNames:
             //
             pT = pToPath;
 
-            while (*pFrom &&
-                CharUpper((LPTSTR)(TUCHAR)*pFrom) == CharUpper((LPTSTR)(TUCHAR)*pT))
+            while (*pFrom && (CharUpper((LPTSTR)(TUCHAR)*pFrom) == CharUpper((LPTSTR)(TUCHAR)*pT)))
             {
                 pFrom++;
                 pT++;

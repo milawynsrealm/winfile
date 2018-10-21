@@ -306,7 +306,7 @@ JAPANEND
 
 // include reason strings
 
-#include "suggest_en-US.db"
+//#include "suggest_en-US.db"
 
     IDS_DESTFULL                "The destination disk is full.  Please insert another disk to continue."
     IDS_WRITEPROTECTFILE        "This is a system, hidden, or read-only file."
