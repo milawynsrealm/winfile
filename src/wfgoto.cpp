@@ -19,7 +19,7 @@ extern "C"
 #include "lfn.h"
 }
 
-void BuildDirectoryBagOValues(BagOValues<PDNODE> *pbov, LPTSTR szRoot, PDNODE pNode);
+void BuildDirectoryBagOValues(BagOValues<PDNODE> *pbov, LPWSTR szRoot, PDNODE pNode);
 void FreeDirectoryBagOValues(BagOValues<PDNODE> *pbov);
 
 DWORD g_driveScanEpoc;				// incremented when a refresh is requested; old bags are discarded; scans are aborted if epoc changes

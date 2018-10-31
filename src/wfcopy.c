@@ -1351,7 +1351,7 @@ DWORD GetNextPair(PCOPYROOT pcr, LPWSTR pFrom,
 
     STKCHK();
     *pFrom = CHAR_NULL;
-    *pdwError = 0 ;
+    *pdwError = 0;
 
     //
     // Keep recursing directory structure until we get to the bottom
@@ -1379,7 +1379,7 @@ DWORD GetNextPair(PCOPYROOT pcr, LPWSTR pFrom,
             }
 
             if (pcr->fRecurse && (pDTA->fd.dwFileAttributes & ATTR_DIR) &&
-                !(pDTA->fd.dwFileAttributes & ATTR_RETURNED)) 
+                !(pDTA->fd.dwFileAttributes & ATTR_RETURNED))
             {
                 //
                 // Was returned on last call, begin search.
@@ -1407,7 +1407,7 @@ SkipThisFile:
             //
             if (!WFFindNext (pDTA))
             {
-                WFFindClose (pDTA);
+                WFFindClose(pDTA);
 LeaveDirectory:
                 //
                 // This spec has been exhausted...
@@ -1417,12 +1417,12 @@ LeaveDirectory:
                 //
                 // Remove the child file spec.
                 //
-                RemoveLast (pcr->sz);
+                RemoveLast(pcr->sz);
 
 #ifdef FASTMOVE
 FastMoveSkipDir:
 #endif
-                RemoveLast (pcr->szDest);
+                RemoveLast(pcr->szDest);
 
 #ifdef FASTMOVE
                 if (pcr->fRecurse && !pcr->bFastMove)
@@ -1528,10 +1528,10 @@ ProcessSearchResult:
                 // Set pcr->cIsDiskThereCheck[DRIVEID] after disk has been
                 // checked.  Modified by C. Stevens, August 1991
 
-                if (pcr->sz[1]==CHAR_COLON && !pcr->cIsDiskThereCheck[DRIVEID (pcr->sz)])
+                if (pcr->sz[1] == CHAR_COLON && !pcr->cIsDiskThereCheck[DRIVEID(pcr->sz)])
                 {
                     if (!IsTheDiskReallyThere(hdlgProgress, pcr->sz, dwFunc, FALSE))
-                        return(0);
+                        return 0;
                     pcr->cIsDiskThereCheck[DRIVEID (pcr->sz)] = 1;
                 }
 
@@ -1551,7 +1551,7 @@ BeginSearch:
                     //
                     // Quit if pcr->sz gets too big.
                     //
-                    if (lstrlen (pcr->sz) - lstrlen (FindFileName (pcr->sz)) >= MAXPATHLEN)
+                    if (lstrlen (pcr->sz) - lstrlen (FindFileName(pcr->sz)) >= MAXPATHLEN)
                         goto SearchStartFail;
 
                     //
@@ -1567,7 +1567,7 @@ SearchStartFail:
 
                             goto LeaveDirectory;
                         }
-                        lstrcpy (pFrom,pcr->sz);
+                        lstrcpy(pFrom, pcr->sz);
 
                         //
                         // Back up as if we completed a search.
@@ -1676,11 +1676,11 @@ ReturnPair:
                 if (dwOp == OPER_MKDIR)
                     RemoveLast(pToPath);
 
-                AppendToPath(pToPath,pToSpec);
+                AppendToPath(pToPath, pToSpec);
             }
 
             if ((dwOp == OPER_MKDIR || dwOp == OPER_DOFILE) && 
-                (!bIsLFNDriveDest) && IsLFN (FindFileName (pFrom)) && 
+                (!bIsLFNDriveDest) && IsLFN (FindFileName (pFrom)) &&
                 (IsWild(pToSpec) || IsLFN(pToSpec)))
             {
                 //
@@ -1735,12 +1735,12 @@ ReturnPair:
             //
             pT = pToPath;
 
-            while (*pFrom && (CharUpper((LPTSTR)(TUCHAR)*pFrom) == CharUpper((LPTSTR)(TUCHAR)*pT)))
+            while ((*pFrom) && (wcscmp(CharUpper(pFrom), CharUpper(pT))))
             {
                 pFrom++;
                 pT++;
             }
-            if (!*pFrom && (!*pT || *pT == CHAR_BACKSLASH))
+            if (!(*pFrom) && (!(*pT) || *pT == CHAR_BACKSLASH))
             {
                 // The two fully qualified strings are equal up to the end of the
                 //   source directory ==> the destination is a subdir.Must return
@@ -1754,7 +1754,7 @@ ReturnPair:
     return dwOp;
 }
 
-VOID CdDotDot (LPWSTR szOrig)
+VOID CdDotDot(LPWSTR szOrig)
 {
     WCHAR szTemp[MAXPATHLEN];
 
@@ -1764,7 +1764,7 @@ VOID CdDotDot (LPWSTR szOrig)
 }
 
 /* p is a fully qualified ANSI string. */
-BOOL IsCurrentDirectory (LPWSTR p)
+BOOL IsCurrentDirectory(LPWSTR p)
 {
     WCHAR szTemp[MAXPATHLEN];
 
@@ -1784,7 +1784,7 @@ BOOL IsCurrentDirectory (LPWSTR p)
 //
 // note: this may hit the disk in the directory check
 //
-INT CheckMultiple(register LPTSTR pInput)
+INT CheckMultiple(register LPWSTR pInput)
 {
     LPWSTR pT;
     WCHAR szTemp[MAXPATHLEN];
@@ -1861,7 +1861,7 @@ VOID Notify(HWND hDlg, WORD idMessage, LPWSTR szFrom, LPWSTR szTo)
 
     if (idMessage)
     {
-        LoadString(hAppInstance, idMessage, szTemp, COUNTOF(szTemp));
+        LoadStringW(hAppInstance, idMessage, szTemp, COUNTOF(szTemp));
         SetDlgItemText(hDlg, IDD_STATUS, szTemp);
         SetDlgItemPath(hDlg, IDD_NAME, szFrom);
     }
@@ -1886,7 +1886,7 @@ VOID Notify(HWND hDlg, WORD idMessage, LPWSTR szFrom, LPWSTR szTo)
 // us that we have a file that kernel has open.
 //
 // LFN: detect long names and ignore them?
-BOOL IsWindowsFile(LPTSTR szFileOEM)
+BOOL IsWindowsFile(LPWSTR szFileOEM)
 {
     HANDLE hMod;
     WCHAR szModule[MAXPATHLEN];
@@ -1989,7 +1989,7 @@ DWORD WF_CreateDirectory(HWND hwndParent, LPWSTR szDest, LPWSTR szSrc)
                 // using the template.
                 //
                 ret = MKDir(szTemp, (p == pLastSpecEnd) ? szSrc : NULL);
-                if (ret != NULL)
+                if (ret)
                 {
                     //
                     // Here we must also ignore the ERROR_ALREADY_EXISTS error.
@@ -3147,8 +3147,8 @@ ExitLoop:
 //--------------------------------------------------------------------------*/
 // Used by Danger Mouse to do moves and copies.
 DWORD DMMoveCopyHelper(
-    register LPTSTR pFrom,
-    register LPTSTR pTo,
+    register LPWSTR pFrom,
+    register LPWSTR pTo,
     BOOL bCopy)
 {
     DWORD       dwStatus;
@@ -3242,7 +3242,7 @@ Error:
     return dwStatus;
 }
 
-DWORD FileRemove(LPTSTR pSpec)
+DWORD FileRemove(LPWSTR pSpec)
 {
     if (DeleteFile(pSpec))
         return (DWORD)0;
@@ -3250,7 +3250,7 @@ DWORD FileRemove(LPTSTR pSpec)
         return GetLastError();
 }
 
-DWORD FileMove(LPTSTR pFrom, LPTSTR pTo, PBOOL pbErrorOnDest, BOOL bSilent)
+DWORD FileMove(LPWSTR pFrom, LPWSTR pTo, PBOOL pbErrorOnDest, BOOL bSilent)
 {
     DWORD result;
     BOOL bTried = FALSE;
@@ -3355,7 +3355,7 @@ DWORD CopyError(LPWSTR pszSource,
     CompactPath(hDC, szFile, GetSystemMetrics(SM_CXSCREEN)/4*3);
     ReleaseDC(NULL, hDC);
 
-    LoadString(hAppInstance, IDS_COPYERROR + dwFunc, szTitle, COUNTOF(szTitle));
+    LoadStringW(hAppInstance, IDS_COPYERROR + dwFunc, szTitle, COUNTOF(szTitle));
 
     // get the verb string
     if (nOper == OPER_DOFILE || !nOper)
@@ -3364,10 +3364,10 @@ DWORD CopyError(LPWSTR pszSource,
             // this is bogus, this could be IDS_CREATING as well...
             LoadString(hAppInstance, IDS_REPLACING, szVerb, COUNTOF(szVerb));
         else
-            LoadString(hAppInstance, IDS_VERBS + dwFunc, szVerb, COUNTOF(szVerb));
+            LoadStringW(hAppInstance, IDS_VERBS + dwFunc, szVerb, COUNTOF(szVerb));
     }
     else
-        LoadString(hAppInstance, IDS_ACTIONS + (nOper >> 8), szVerb, COUNTOF(szVerb));
+        LoadStringW(hAppInstance, IDS_ACTIONS + (nOper >> 8), szVerb, COUNTOF(szVerb));
 
     // get the reason string
 
@@ -3376,11 +3376,11 @@ DWORD CopyError(LPWSTR pszSource,
     // use the files names or "Selected files" if file list too long
 
     if (!nOper && (lstrlen(pszSource) > 64))
-        LoadString(hAppInstance, IDS_SELECTEDFILES, pszSource, 64);
+        LoadStringW(hAppInstance, IDS_SELECTEDFILES, pszSource, 64);
 
     wsprintf(szMessage, szVerb, szFile, szReason);
 
-    switch (MessageBox(hdlgProgress, szMessage, szTitle,
+    switch (MessageBoxW(hdlgProgress, szMessage, szTitle,
         bFatalError || !ManySource ? MB_ICONSTOP | MB_OK :
         MB_ABORTRETRYIGNORE | MB_ICONSTOP | MB_DEFBUTTON2))
     {
@@ -3416,7 +3416,7 @@ DWORD CopyError(LPWSTR pszSource,
 ;   != 0    dos error code including DE_OPCANCELLED
 ;
 ============================================================================*/
-INT CopyMoveRetry(LPTSTR pszDest, INT nError, PBOOL pbErrorOnDest)
+INT CopyMoveRetry(LPWSTR pszDest, INT nError, PBOOL pbErrorOnDest)
 {
     WCHAR szReason[128]; /* Error message string */
     LPWSTR pTemp;         /* Pointer into filename */
@@ -3429,11 +3429,11 @@ INT CopyMoveRetry(LPTSTR pszDest, INT nError, PBOOL pbErrorOnDest)
     {
         *pbErrorOnDest = FALSE;
 
-        GetWindowText(hdlgProgress, szTitle, COUNTOF(szTitle));
+        GetWindowTextW(hdlgProgress, szTitle, COUNTOF(szTitle));
 
         if (nError == ERROR_PATH_NOT_FOUND)
         {
-            LoadString(hAppInstance, IDS_PATHNOTTHERE, szReason, COUNTOF(szReason));
+            LoadStringW(hAppInstance, IDS_PATHNOTTHERE, szReason, COUNTOF(szReason));
 
             // Note the -1 below here is valid in both SBCS and DBCS because
             // pszDest is fully qualified and the character preceding the
@@ -3453,7 +3453,7 @@ INT CopyMoveRetry(LPTSTR pszDest, INT nError, PBOOL pbErrorOnDest)
             LoadString(hAppInstance, IDS_DESTFULL, szMessage, COUNTOF(szMessage));
         }
 
-        result = MessageBox(hdlgProgress,szMessage,szTitle,wFlags);
+        result = MessageBoxW(hdlgProgress,szMessage,szTitle,wFlags);
 
         if (result == IDOK || result == IDYES)
         {

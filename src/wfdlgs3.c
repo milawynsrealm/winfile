@@ -750,24 +750,25 @@ INT_PTR CALLBACK FormatDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPA
                         DialogBox(hAppInstance, (LPTSTR) MAKEINTRESOURCE(CANCELDLG), hwndFrame, CancelDlgProc);
                     else
                         CreateDialog(hAppInstance, (LPTSTR) MAKEINTRESOURCE(CANCELDLG), hwndFrame, CancelDlgProc);
+
+                    break;
                 }
+
+                default:
+                    return FALSE;
             }
-            break;
         }
 
         default:
-            return FALSE;
-    }
-
-    default:
-    {
-        if (wMsg == wHelpMessage)
         {
-            WFHelp(hDlg);
-            return TRUE;
+            if (wMsg == wHelpMessage)
+            {
+                WFHelp(hDlg);
+                return TRUE;
+            }
+            else
+                return FALSE;
         }
-        else
-            return FALSE;
     }
     return TRUE;
 }

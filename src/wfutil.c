@@ -27,7 +27,9 @@ HistoryDir rghistoryDir[MAXHISTORY];
 
 VOID SaveHistoryDir(HWND hwnd, LPWSTR szDir)
 {
-	if (rghistoryDir[historyCur].hwnd == hwnd && lstrcmpi(rghistoryDir[historyCur].szDir, szDir) == 0)
+	DWORD historyT;
+
+    if (rghistoryDir[historyCur].hwnd == hwnd && lstrcmpi(rghistoryDir[historyCur].szDir, szDir) == 0)
 		return;
 
 	historyCur = (historyCur + 1) % MAXHISTORY;
@@ -36,7 +38,7 @@ VOID SaveHistoryDir(HWND hwnd, LPWSTR szDir)
 	lstrcpy(rghistoryDir[historyCur].szDir, szDir);
 
 	// always leave one NULL entry after current
-	DWORD historyT = (historyCur + 1) % MAXHISTORY;
+	historyT = (historyCur + 1) % MAXHISTORY;
 	rghistoryDir[historyT].hwnd = NULL;
 	rghistoryDir[historyT].szDir[0] = '\0';
 }
@@ -125,7 +127,7 @@ VOID CDECL SetStatusText(int nPane, UINT nFlags, LPCTSTR szFormat, ...)
 // returns:
 //  TRUE    we have it saved pszPath gets path
 //  FALSE   we don't have it saved
-BOOL GetSavedDirectory(DRIVE drive, LPWTSTR pszPath)
+BOOL GetSavedDirectory(DRIVE drive, LPWSTR pszPath)
 {
     if (CurDirCache[drive])
     {
@@ -136,7 +138,7 @@ BOOL GetSavedDirectory(DRIVE drive, LPWTSTR pszPath)
         return FALSE;
 }
 
-VOID SaveDirectory(LPTSTR pszPath)
+VOID SaveDirectory(LPWSTR pszPath)
 {
     DRIVE drive;
 
@@ -324,10 +326,12 @@ VOID RefreshWindow(HWND hwndActive, BOOL bUpdateDriveList, BOOL bFlushCache)
     //
     // update the dir part first so tree can steal later
     //
-    if (hwndDir = HasDirWindow(hwndActive))
+    hwndDir = HasDirWindow(hwndActive);
+    if (hwndDir)
         SendMessage(hwndDir, FS_CHANGEDISPLAY, CD_PATH, 0L);
 
-    if (hwndTree = HasTreeWindow(hwndActive))
+    hwndTree = HasTreeWindow(hwndActive);
+    if (hwndTree)
     {
         //
         // remember the current directory
@@ -596,7 +600,7 @@ VOID SetMDIWindowText(HWND hwnd, LPWSTR szTitle)
 
     UINT cchTempLen;
     DRIVE drive;
-    BOOL bNumIncrement = FALSE;
+    //BOOL bNumIncrement = FALSE;
     BOOL bNotSame;
 
     UINT uTitleLen;
@@ -1106,7 +1110,7 @@ VOID WritePrivateProfileBool(LPTSTR szKey, BOOL bParam)
 /////////////////////////////////////////////////////////////////////
 VOID CleanupMessages()
 {
-    MSG   msg;
+    MSG msg;
 
     while (PeekMessage(&msg, NULL, 0, 0, TRUE))
         if (!IsDialogMessage(hdlgProgress, &msg))
@@ -1316,15 +1320,17 @@ INT MyMessageBox(HWND hwnd, DWORD idTitle, DWORD idMessage, DWORD wStyle)
 DWORD ExecProgram(LPTSTR lpPath, LPTSTR lpParms, LPTSTR lpDir, BOOL bLoadIt, BOOL bRunAs)
 {
     DWORD ret;
+#if 0
     INT iCurCount;
     INT i;
+#endif
     HCURSOR hCursor;
     LPWSTR lpszTitle;
 
     ret = 0;
 
     hCursor = SetCursor(LoadCursor(NULL, IDC_WAIT));
-    iCurCount = ShowCursor(TRUE) - 1;
+    /*iCurCount = */ShowCursor(TRUE) - 1;
 
     //
     // Shell Execute takes ansi string.
@@ -1419,7 +1425,7 @@ DWORD ExecProgram(LPTSTR lpPath, LPTSTR lpParms, LPTSTR lpDir, BOOL bLoadIt, BOO
     }
 
 EPExit:
-    i = ShowCursor(FALSE);
+    /*i = */ShowCursor(FALSE);
 
 #if 0
 
@@ -1478,7 +1484,7 @@ PDOCBUCKET IsBucketFile(LPWSTR lpszPath, PPDOCBUCKET ppBucket)
 // returns true if additional characters; false if first one
 // repeating the first character leaves only one character
 // ch == '\0' resets the tick and buffer
-BOOL TypeAheadString(WCHAR ch, LPWSTR szT)
+BOOL TypeAheadString(LPWSTR ch, LPWSTR szT)
 {
 	static DWORD tick64 = 0;
 	static WCHAR rgchTA[MAXPATHLEN] = { '\0' };
@@ -1493,14 +1499,13 @@ BOOL TypeAheadString(WCHAR ch, LPWSTR szT)
 	}
 
 	tickT = GetTickCount();
-	ch = (WCHAR)CharUpper((LPWSTR)ch);
 	ich = wcslen(rgchTA);
 
 	// if only one char and it repeats or more than .5s since last char, start over
-	if (ich == 1 && rgchTA[0] == ch || tickT - tick64 > 500)
+	if ((ich == 1 && rgchTA[0] == CharUpperW(ch)) || tickT - tick64 > 500)
 		ich = 0;
 
-	rgchTA[ich] = ch;
+	rgchTA[ich] = CharUpperW(ch);
 	rgchTA[ich+1] = '\0';
 
 	tick64 = tickT;

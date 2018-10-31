@@ -40,7 +40,9 @@ BOOL WNetStat(INT nIndex)
     DWORD dwError;
 
     BOOL bNetwork = FALSE;
+#if 0
     BOOL bConnect = FALSE;
+#endif
 
     HKEY hKey;
 

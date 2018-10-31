@@ -12,9 +12,9 @@ The Windows File manager was originally released with Windows 3.0 in the early 1
 
 ## Changes from Original
 
-* UNICODE Only
+- **UNICODE Only**
     - This means that the program will only work for Windows NT 5.1 or later and not the older DOS versions of Windows (95/98/ME).
-* CMake Build System
+- **CMake Build System**
     - Makes it easier to build the project without having to update every single build system (MinGW, MSVC, etc.) with every commit.
 
 ## Contributing

@@ -123,7 +123,8 @@ WFPrint(LPTSTR pSel)
         return TRUE;
 
     /* See if there is more than one file to print.  Abort if so */
-    if (pSel = GetNextFile(pSel, szTemp, COUNTOF(szTemp)))
+    pSel = GetNextFile(pSel, szTemp, COUNTOF(szTemp));
+    if (pSel)
     {
         MyMessageBox(hwndFrame, IDS_WINFILE, IDS_PRINTONLYONE, MB_OK | MB_ICONEXCLAMATION);
         return(FALSE);

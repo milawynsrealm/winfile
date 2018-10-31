@@ -258,7 +258,8 @@ VOID RectDrive(DRIVEIND driveInd, BOOL bDraw)
     {
         hdc = GetDC(hwndDriveBar);
 
-        if (hBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOWTEXT)))
+        hBrush = CreateSolidBrush(GetSysColor(COLOR_WINDOWTEXT));
+        if (hBrush)
         {
             FrameRect(hdc, &rc, hBrush);
             DeleteObject(hBrush);
@@ -306,7 +307,8 @@ VOID DrawDrive(HDC hdc, INT x, INT y, DRIVEIND driveInd, BOOL bCurrent, BOOL bFo
     {
         HBRUSH hbr;
 
-        if (hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT)))
+        hbr = CreateSolidBrush(GetSysColor(COLOR_HIGHLIGHT));
+        if (hbr)
         {
             if (bFocus)
             {
@@ -491,7 +493,7 @@ VOID DrivesPaint(HWND hWnd, INT nDriveFocus, INT nDriveCurrent)
 
     INT x, y;
     HANDLE hOld;
-    INT cDriveRows, cDrivesPerRow;
+    //INT cDriveRows, cDrivesPerRow;
 
     GetClientRect(hWnd, &rc);
 
@@ -504,14 +506,14 @@ VOID DrivesPaint(HWND hWnd, INT nDriveFocus, INT nDriveCurrent)
     }
 
     hOld = SelectObject(hdc, hFont);
-
+#if 0
     cDrivesPerRow = rc.right / dxDrive;
 
     if (!cDrivesPerRow)
         cDrivesPerRow++;
 
     cDriveRows = ((cDrives-1) / cDrivesPerRow) + 1;
-
+#endif
     x = 0;
     y = 0;
     for (nDrive = 0; nDrive < cDrives; nDrive++)
@@ -614,7 +616,8 @@ VOID DrivesSetDrive(HWND hWnd, DRIVEIND driveInd, DRIVEIND driveIndCur, BOOL bDo
     // if szPath is not valid the TC_SETDRIVE will reinit
     // the files half (if there is no tree we have a problem)
     //
-    if (hwndDir = HasDirWindow(hwndChild))
+    hwndDir = HasDirWindow(hwndChild);
+    if (hwndDir)
     {
         AddBackslash(szPath);
         SendMessage(hwndDir, FS_GETFILESPEC, MAXFILENAMELEN, (LPARAM)(szPath + lstrlen(szPath)));

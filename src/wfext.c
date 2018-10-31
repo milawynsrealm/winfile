@@ -46,7 +46,7 @@ GetExtSelection(
 #define lpSelW ((LPFMS_GETFILESELW)lParam)
 #define lpSelA ((LPFMS_GETFILESELA)lParam)
 
-    LPXDTALINK lpStart;
+    //LPXDTALINK lpStart;
     LPXDTA lpxdta = NULL;
     UINT uSel, i;
     HWND hwndLB;
@@ -59,7 +59,7 @@ GetExtSelection(
 
     hwndView = bSearch ? hwnd : HasDirWindow(hwnd);
 
-    lpStart = (LPXDTALINK)GetWindowLongPtr(hwndView, GWL_HDTA);
+    //lpStart = (LPXDTALINK)GetWindowLongPtr(hwndView, GWL_HDTA);
     hwndLB = GetDlgItem(hwndView, IDCW_LISTBOX);
 
     if (uExtSelItems == (UINT)-1)
@@ -330,13 +330,14 @@ FreeExtensions()
 {
     INT i;
     HMENU hMenuFrame;
+    UINT posToDelete;
 
     FreeToolbarExtensions();
 
     hMenuFrame = GetMenu(hwndFrame);
 
     // we are going to delete all extensions and thus each one to delete is at the same place
-    UINT posToDelete = MapIDMToMenuPos(IDM_EXTENSIONS);
+    posToDelete = MapIDMToMenuPos(IDM_EXTENSIONS);
 
     for (i = 0; i < iNumExtensions; i++)
     {

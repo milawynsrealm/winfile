@@ -646,7 +646,8 @@ BOOL WFCheckCompress(HWND hDlg, LPTSTR szNameSpec, DWORD dwNewAttrs,BOOL bProper
     //
     //  Show the hour glass cursor.
     //
-    if (hCursor = LoadCursor(NULL, IDC_WAIT))
+    hCursor = LoadCursor(NULL, IDC_WAIT);
+    if (hCursor)
         hCursor = SetCursor(hCursor);
 
     ShowCursor(TRUE);
@@ -957,8 +958,8 @@ BOOL CompressFile(HANDLE Handle, LPWSTR FileSpec, PWIN32_FIND_DATA FindData)
     //
     FileSize.LowPart = FindData->nFileSizeLow;
     FileSize.HighPart = FindData->nFileSizeHigh;
-    CompressedSize.LowPart = GetCompressedFileSize( FileSpec,
-                                                    &(CompressedSize.HighPart) );
+    CompressedSize.LowPart = GetCompressedFileSizeW( FileSpec,
+                                                    (PDWORD)&(CompressedSize.HighPart) );
 
     //
     //  Increment the running total.
@@ -1569,7 +1570,8 @@ VOID RedrawAllTreeWindows()
 
     for (hwnd = GetWindow(hwndMDIClient, GW_CHILD); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
     {
-       if (hwndTree = HasTreeWindow(hwnd))
+       hwndTree = HasTreeWindow(hwnd);
+       if (hwndTree)
        {
            hwndLB = GetDlgItem(hwndTree, IDCW_TREELISTBOX);
 

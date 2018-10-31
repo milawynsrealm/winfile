@@ -58,7 +58,7 @@ wWinMain(
     RegGetMachineIdentifierValue( &gdwMachineId );
 #endif // defined(JAPAN) && defined(i386)
 
-    if (!InitFileManager(hInst, pszNextComponent(pszCmdLine), nCmdShow))
+    if (!InitFileManager(hInstance, pszNextComponent(pszCmdLine), nCmdShow))
     {
         FreeFileManager();
         return FALSE;
@@ -160,7 +160,7 @@ BOOL InitPopupMenus(UINT uMenus, HMENU hMenu, HWND hwndActive)
     UINT      uMenuFlags, uCompFlags;
     HWND      hwndTree, hwndDir;
     DRIVE     drive;
-    BOOL      bLFN;
+    //BOOL      bLFN;
     INT       i;
     DWORD     dwFlags;
 
@@ -171,7 +171,7 @@ BOOL InitPopupMenus(UINT uMenus, HMENU hMenu, HWND hwndActive)
 
     uMenuFlags = MF_BYCOMMAND | MF_ENABLED;
 
-    bLFN = FALSE;       // For now, ignore the case.
+    //bLFN = FALSE;       // For now, ignore the case.
 
     if (uMenus & (1 << IDM_FILE))
     {
@@ -408,7 +408,7 @@ BOOL InitPopupMenus(UINT uMenus, HMENU hMenu, HWND hwndActive)
         EnableMenuItem(hMenu, IDM_BOTH,      uMenuFlags);
         EnableMenuItem(hMenu, IDM_TREEONLY,  uMenuFlags);
         EnableMenuItem(hMenu, IDM_DIRONLY,   uMenuFlags);
-        EnbleMenuItem(hMenu, IDM_SPLIT,     uMenuFlags);
+        EnableMenuItem(hMenu, IDM_SPLIT,     uMenuFlags);
 
         dwView &= VIEW_EVERYTHING;
 
@@ -570,10 +570,10 @@ LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam
 
         case FS_CANCELCOPYFORMATDEST:
         {
+            WCHAR szTemp[128];
+
             if (CancelInfo.hCancelDlg)
             {
-                WCHAR szTemp[128];
-
                 if (CancelInfo.Info.Copy.bFormatDest)
                     LoadString(hAppInstance, IDS_FORMATTINGDEST, szTemp, COUNTOF(szTemp));
                 else
@@ -867,7 +867,8 @@ LRESULT CALLBACK FrameWndProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam
                     {
                         dwFlags = GetWindowLongPtr(hwnd, GWL_VIEW) & (VIEW_EVERYTHING | VIEW_PLUSES);
 
-                        if (hwndT = HasDirWindow(hwnd))
+                        hwndT = HasDirWindow(hwnd);
+                        if (hwndT)
                             SendMessage(hwndT, FS_CHANGEDISPLAY, CD_VIEW, MAKELONG(dwFlags, TRUE));
                         else if (hwnd == hwndSearch)
                         {

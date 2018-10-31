@@ -18,7 +18,7 @@
 #define FIL_STANDARD      1
 
 // Local Function prototypes
-DWORD I_Is83File( LPTSTR lpFile ) ;
+DWORD I_Is83File( LPWSTR lpFile ) ;
 
 /****************************************************************************
  *
@@ -39,7 +39,7 @@ DWORD I_Is83File( LPTSTR lpFile ) ;
  *
  ****************************************************************************/
 DWORD
-I_LFNCanon(WORD CanonType, LPTSTR InFile, LPTSTR OutFile)
+I_LFNCanon(WORD CanonType, LPWSTR InFile, LPWSTR OutFile)
 {
     LPWSTR       ins = InFile;
     LPWSTR       outs = OutFile;

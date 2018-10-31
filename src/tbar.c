@@ -54,7 +54,7 @@ static const EXCMDS uExtraCommands[] = {
 /* Note that the idsHelp field is used internally to determine if the
  * button is "available" or not.
  */
-static const TBBUTTON tbButtons[] =
+static TBBUTTON tbButtons[] =
 {
     /* iBitmap,     idCommand,   fsState,         fsStyle,     bReserved[2], dwData, iString */
     { 0, 0              , TBSTATE_ENABLED, TBSTYLE_SEP   , {0}, 0, 0 },
@@ -91,7 +91,7 @@ typedef struct _BUTTONS {
     int idB;
 } BUTTONS;
 
-static const BUTTONS sAllButtons[] = {
+static BUTTONS sAllButtons[] = {
     {IDM_MOVE,             12},
     {IDM_COPY,             11},
     {IDM_DELETE,           13},
@@ -736,10 +736,9 @@ BOOL HandleToolbarRestore(LPNMTBRESTORE lpnmtRestore)
 {
     if (lpnmtRestore->iItem == -1)
     {
-        TBSAVEHDR *phdr;
+        TBSAVEHDR *phdr = (TBSAVEHDR *)lpnmtRestore->pData;
         lpnmtRestore->cbBytesPerRecord = sizeof(TBSAVEITEM);
         lpnmtRestore->tbButton.idCommand = 0;
-        *phdr = (TBSAVEHDR *)lpnmtRestore->pData;
         if (phdr->magic == TBHDR_MAGIC && phdr->version == TBHDR_VERSION)
         {
             // only restore if magic value matches; fetch cButtons too

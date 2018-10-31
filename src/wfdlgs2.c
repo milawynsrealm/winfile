@@ -15,7 +15,8 @@
 #include "wnetcaps.h"         // WNetGetCaps()
 #include "commdlg.h"
 
-
+//Should be defined in winbase.h
+#define FS_FILE_ENCRYPTION 0x00020000
 
 BOOL (*lpfnGetFileVersionInfoW)(LPWSTR, DWORD, DWORD, LPVOID);
 DWORD (*lpfnGetFileVersionInfoSizeW)(LPWSTR, LPDWORD);
@@ -881,11 +882,10 @@ LPWSTR GetVersionDatum(LPTSTR pszName)
 // Note, Language is bogus, since FindResourceEx takes a language already...
 LPWSTR GetVersionInfo(PTSTR pszPath, PTSTR pszName)
 {
-    DWORD cbValue = 0;
     DWORD cbValueTranslation = 0;
-    LPWSTR lpszValue=NULL;
+    LPWSTR lpszValue = NULL;
 
-    static bDLLFail = FALSE;
+    static BOOL bDLLFail = FALSE;
 
     if (!hVersion)
     {
@@ -1210,7 +1210,7 @@ INT InitPropertiesDialog(HWND hDlg)
     hwndDir = HasDirWindow(hwndActive);
     hwndTree = HasTreeWindow(hwndActive);
 
-    if (GetVolumeInformation(NULL, NULL, 0L, NULL, NULL, &dwFlags, NULL, 0L))
+    if (GetVolumeInformationW(NULL, NULL, 0L, NULL, NULL, &dwFlags, NULL, 0L))
     {
         bFileCompression = ((dwFlags & FS_FILE_COMPRESSION) == FS_FILE_COMPRESSION);
         bFileEncryption = ((dwFlags & FS_FILE_ENCRYPTION) == FS_FILE_ENCRYPTION);
@@ -1360,7 +1360,7 @@ FullPath:
         {
             if ((bFileCompression) && (dwAttribsOn & ATTR_COMPRESSED))
             {
-                qCSize.LowPart = GetCompressedFileSize(szName, &(qCSize.HighPart));
+                qCSize.LowPart = GetCompressedFileSizeW(szName, (PDWORD)&(qCSize.HighPart));
                 PutSize(&qCSize, szNum);
                 wsprintf(szTemp, szSBytes, szNum);
                 SetDlgItemText(hDlg, IDD_CSIZE, szTemp);
@@ -1717,8 +1717,9 @@ INT_PTR CALLBACK AttribsDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LP
 
                     p = pSel;
 
-                    while (p = GetNextFile(p, szName, COUNTOF(szName)))
+                    while (p)
                     {
+                        p = GetNextFile(p, szName, COUNTOF(szName));
                         QualifyPath(szName);
 
                         dwAttribs = GetFileAttributes(szName);

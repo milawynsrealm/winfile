@@ -215,9 +215,9 @@ MemoryError:
 
     if (!bFound && ERROR_FILE_NOT_FOUND != lfndta.err &&
         (bRoot ||
-            ERROR_ACCESS_DENIED != lfndta.err &&
-            ERROR_PATH_NOT_FOUND != lfndta.err &&
-            ERROR_INVALID_NAME != lfndta.err))
+            (ERROR_ACCESS_DENIED != lfndta.err &&
+             ERROR_PATH_NOT_FOUND != lfndta.err &&
+             ERROR_INVALID_NAME != lfndta.err)))
     {
         SearchInfo.eStatus = SEARCH_ERROR;
         SearchInfo.dwError = lfndta.err;
@@ -764,9 +764,11 @@ LRESULT CALLBACK SearchWndProc( register HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
                 if (wParam == CD_SEARCHUPDATE)
                 {
+                    int msg;
+
                     LoadString(hAppInstance, IDS_SEARCHTITLE, szTitle, COUNTOF(szTitle));
                     LoadString(hAppInstance, IDS_SEARCHREFRESH, szMessage, COUNTOF(szMessage));
-                    int msg = MessageBox(hwnd, szMessage, szTitle, MB_ABORTRETRYIGNORE | MB_ICONQUESTION);
+                    msg = MessageBox(hwnd, szMessage, szTitle, MB_ABORTRETRYIGNORE | MB_ICONQUESTION);
 
                     if (msg == IDABORT)
                     {
@@ -856,7 +858,8 @@ LRESULT CALLBACK SearchWndProc( register HWND hwnd, UINT uMsg, WPARAM wParam, LP
             ClearSearchLB(FALSE);
             SearchInfo.hwndLB = NULL;
 
-            if (hMem = (HANDLE)GetWindowLongPtr(hwnd, GWL_TABARRAY))
+            hMem = (HANDLE)GetWindowLongPtr(hwnd, GWL_TABARRAY);
+            if (hMem)
                 LocalFree(hMem);
 
             break;

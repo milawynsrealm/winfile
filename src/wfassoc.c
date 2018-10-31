@@ -2535,7 +2535,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
 {
     WCHAR szKey[MAX_PATH];
     INT iPoint;
-    DWORD dwError;
+    DWORD dwError = ERROR_SUCCESS;
     LPWSTR p, p2;
 
     pAssociateFileDlgInfo->DDEInfo[i].bUsesDDE = FALSE;
@@ -2593,7 +2593,7 @@ DDERead(PASSOCIATEFILEDLGINFO pAssociateFileDlgInfo, INT i)
         StripPath(p2);
 
         if (*p2)
-            *p2 = CharUpper((LPWSTR)*p2);
+            wcscpy(p2, CharUpper(p2));
     }
 
     lstrcpy(&szKey[iPoint],szTopic);

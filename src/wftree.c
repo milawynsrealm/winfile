@@ -360,13 +360,14 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
                 dwMenuIDs[MHPOP_CURRENT + 1] = uMenuID;
             }
 
-            MenuHelp((WORD)uMsg, wParam, lParam, GetMenu(hwndFrame), hAppInstance, hwndStatus, (LPDWORD)dwMenuIDs);
+            //MenuHelp((WORD)uMsg, wParam, lParam, GetMenu(hwndFrame), hAppInstance, hwndStatus, (LPDWORD)dwMenuIDs);
             break;
         }
 
         case WM_FSC:
         {
-            if (hwndDir = HasDirWindow(hwnd))
+            hwndDir = HasDirWindow(hwnd);
+            if (hwndDir)
                 SendMessage(hwndDir, uMsg, wParam, lParam);
 
             break;
@@ -374,7 +375,8 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
 
         case FS_NOTIFYRESUME:
         {
-            if (hwndDir = HasDirWindow(hwnd))
+            hwndDir = HasDirWindow(hwnd);
+            if (hwndDir)
             {
                 SendMessage(hwnd, FS_GETDIRECTORY, COUNTOF(szDir), (LPARAM)szDir);
                 ModifyWatchList(hwnd, szDir, FILE_NOTIFY_CHANGE_FLAGS);
@@ -472,7 +474,8 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
 
             if (IsIconic(hwnd) || hwnd != (HWND)SendMessage(hwndMDIClient, WM_MDIGETACTIVE, 0, 0L))
             {
-                if (hwndDir = HasDirWindow(hwnd))
+                hwndDir = HasDirWindow(hwnd);
+                if (hwndDir)
                 {
                     lpds->dwControlData = (DWORD) -1;
                     return SendMessage(hwndDir, uMsg, wParam, lParam);
@@ -492,7 +495,8 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
                 return lRet;
             }
 
-            if (hwndDir = HasDirWindow(hwnd))
+            hwndDir = HasDirWindow(hwnd);
+            if (hwndDir)
                 return SendMessage(hwndDir, uMsg, wParam, lParam);
 
             break;
@@ -564,7 +568,8 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
 
         case WM_CLOSE:
         {
-            if (hwndTree = HasTreeWindow(hwnd))
+            hwndTree = HasTreeWindow(hwnd);
+            if (hwndTree)
             {
                 //
                 // don't close if we are reading the tree
@@ -779,7 +784,7 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
                 rc.left = GetSplit(hwnd);
 
                 if (rc.left >= rc.right)
-                        rc.left = 0;
+                    rc.left = 0;
 
                 rc.right = rc.left + dxFrame;
 
@@ -788,14 +793,15 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
                 rc.top = rc.bottom - GetSystemMetrics(SM_CYHSCROLL);
                 FillRect(hdc, &rc, GetStockObject(BLACK_BRUSH));
 
-                if (hbr = CreateSolidBrush(GetSysColor(COLOR_WINDOW))) {
+                hbr = CreateSolidBrush(GetSysColor(COLOR_WINDOW));
+                if (hbr)
+                {
+                    rc.bottom = rc.top;
+                    rc.top = 0;
 
-                   rc.bottom = rc.top;
-                   rc.top = 0;
+                    FillRect(hdc, &rc, hbr);
 
-                   FillRect(hdc, &rc, hbr);
-
-                   DeleteObject(hbr);
+                    DeleteObject(hbr);
                 }
             }
             EndPaint(hwnd, &ps);
@@ -816,7 +822,8 @@ LRESULT CALLBACK TreeWndProc(register HWND hwnd, UINT uMsg, register WPARAM wPar
                 // flag for the list box (hwndDir is set to IDCW_LISTBOX).
                 // Then we redraw then repaint.
                 //
-                if (hwndDir = HasDirWindow(hwnd))
+                hwndDir = HasDirWindow(hwnd);
+                if (hwndDir)
                 {
                     hwndDir = GetDlgItem(hwndDir, IDCW_LISTBOX);
                     SendMessage(hwndDir, WM_SETREDRAW, FALSE, 0L);

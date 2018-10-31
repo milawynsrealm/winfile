@@ -94,7 +94,7 @@ GetRealExtent(
     PDNODE pNode,
     HWND hwndLB,
     LPTSTR szPath,
-    int *pLen);
+    UINT *pLen);
 
 void
 ResetTreeMax(
@@ -1246,7 +1246,7 @@ BOOL FindItemFromPath(HWND hwndLB,
 /*--------------------------------------------------------------------------*/
 BOOL RectTreeItem(HWND hwndLB, INT iItem, BOOL bFocusOn)
 {
-    INT len;
+    UINT len;
     HDC hdc;
     RECT rc;
     RECT rcClip;
@@ -3083,7 +3083,7 @@ INT BuildTreeName(LPTSTR lpszPath, INT iLen, INT iSize)
  *  Get the real text extent for the current directory and save it
  *  in the pNode.
  */
-UINT GetRealExtent(PDNODE pNode, HWND hwndLB, LPWSTR szPath, int *pLen)
+UINT GetRealExtent(PDNODE pNode, HWND hwndLB, LPWSTR szPath, UINT *pLen)
 {
     HDC hdc;
     HFONT hOld;
@@ -3129,7 +3129,7 @@ void ResetTreeMax(HWND hwndLB, BOOL fReCalcExtent)
     DWORD NumItems;
     DWORD ctr;
     PDNODE pNode;
-    int Len;
+    UINT Len;
     UINT xNew, xTreeMax;
 
     NumItems = SendMessage(hwndLB, LB_GETCOUNT, 0, 0);

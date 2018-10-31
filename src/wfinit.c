@@ -24,7 +24,7 @@ typedef VOID (APIENTRY *FNPENAPP)(WORD, BOOL);
 
 VOID (APIENTRY *lpfnRegisterPenApp)(WORD, BOOL);
 
-BYTE chPenReg[] = "RegisterPenApp";    // used in GetProcAddress call
+//LPCSTR chPenReg[] = "RegisterPenApp";    // used in GetProcAddress call
 
 WCHAR szNTlanman[] = TEXT("ntlanman.dll");
 WCHAR szHelv[] = TEXT("MS Shell Dlg");
@@ -76,7 +76,8 @@ VOID BiasMenu(HMENU hMenu, UINT Bias)
         if (id  == (UINT) -1)
         {
             // must be a popup, recurse and update all ID's here
-            if (hSubMenu = GetSubMenu(hMenu, pos))
+            hSubMenu = GetSubMenu(hMenu, pos);
+            if (hSubMenu)
                 BiasMenu(hSubMenu, Bias);
         }
         else if (id)
@@ -621,9 +622,12 @@ BOOL LoadBitmaps(VOID)
     // Create a color bitmap compatible with the display device
     //
     hdc = GetDC(NULL);
-    if (hdcMem = CreateCompatibleDC(hdc))
+
+    hdcMem = CreateCompatibleDC(hdc);
+    if (hdcMem)
     {
-        if (hbmBitmaps = CreateDIBitmap(hdc, lpBitmapInfo, (DWORD)CBM_INIT, lpBits, (LPBITMAPINFO)lpBitmapInfo, DIB_RGB_COLORS))
+        hbmBitmaps = CreateDIBitmap(hdc, lpBitmapInfo, (DWORD)CBM_INIT, lpBits, (LPBITMAPINFO)lpBitmapInfo, DIB_RGB_COLORS);
+        if (hbmBitmaps)
             hbmSave = SelectObject(hdcMem, hbmBitmaps);
     }
     ReleaseDC(NULL, hdc);
@@ -1005,7 +1009,8 @@ JAPANEND
 	if (OleInitialize(0) != NOERROR)
 		return FALSE;
 	
-    if (lpfnRegisterPenApp = (FNPENAPP)GetProcAddress((HANDLE)GetSystemMetrics(SM_PENWINDOWS), chPenReg))
+    lpfnRegisterPenApp = (FNPENAPP)GetProcAddress((HANDLE)GetSystemMetrics(SM_PENWINDOWS), "RegisterPenApp");
+    if (lpfnRegisterPenApp)
         (*lpfnRegisterPenApp)(1, TRUE);
 
     //
@@ -1015,7 +1020,8 @@ JAPANEND
 
     if (*lpCmdLine)
     {
-        if (dwRetval = ExecProgram(lpCmdLine, pszNextComponent(lpCmdLine), NULL, FALSE, FALSE))
+        dwRetval = ExecProgram(lpCmdLine, pszNextComponent(lpCmdLine), NULL, FALSE, FALSE);
+        if (dwRetval)
             MyMessageBox(NULL, IDS_EXECERRTITLE, dwRetval, MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
         else
             nCmdShow = SW_SHOWMINNOACTIVE;
@@ -1356,7 +1362,7 @@ JAPANEND
     //
     // support forced min or max
     //
-    if (nCmdShow == SW_SHOW || nCmdShow == SW_SHOWNORMAL && win.sw != SW_SHOWMINIMIZED)
+    if (nCmdShow == SW_SHOW || (nCmdShow == SW_SHOWNORMAL && win.sw != SW_SHOWMINIMIZED))
         nCmdShow = win.sw;
 
         ShowWindow(hwndFrame, nCmdShow);
@@ -1384,7 +1390,8 @@ JAPANEND
     //
     GetInternational();
 
-    if (ppProgBucket = DocConstruct())
+    ppProgBucket = DocConstruct();
+    if (ppProgBucket)
         FillDocType(ppProgBucket, L"Programs", szDefPrograms);
 
     BuildDocumentStringWorker();
