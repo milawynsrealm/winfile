@@ -32,13 +32,13 @@ DWORD ConfirmDialog(
     BOOL bConfirmByDefault, BOOL *pbAll,
     BOOL bConfirmReadOnlyByDefault, BOOL *pbReadOnlyAll);
 
-DWORD IsInvalidPath(register LPTSTR pPath);
-DWORD GetNextPair(register PCOPYROOT pcr, LPTSTR pFrom, LPTSTR pToPath, LPTSTR pToSpec, DWORD dwFunc, PDWORD pdwError, BOOL bIsLFNDriveDest);
-INT  CheckMultiple(LPTSTR pInput);
+DWORD IsInvalidPath(register LPWSTR pPath);
+DWORD GetNextPair(register PCOPYROOT pcr, LPWSTR pFrom, LPWSTR pToPath, LPWSTR pToSpec, DWORD dwFunc, PDWORD pdwError, BOOL bIsLFNDriveDest);
+INT  CheckMultiple(LPWSTR pInput);
 VOID DialogEnterFileStuff(register HWND hwnd);
-DWORD SafeFileRemove(LPTSTR szFileOEM);
-BOOL IsWindowsFile(LPTSTR szFileOEM);
-BOOL IsLFNDrive(LPTSTR szDrive);
+DWORD SafeFileRemove(LPWSTR szFileOEM);
+BOOL IsWindowsFile(LPWSTR szFileOEM);
+BOOL IsLFNDrive(LPWSTR szDrive);
 
 INT_PTR CALLBACK ReplaceDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam);
 
@@ -1244,7 +1244,10 @@ BOOL GetNameDlgProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
                 }
 
                 case IDD_HELP:
-                    goto DoHelp;
+                {
+                    WFHelp(hwnd);
+                    return TRUE;
+                }
 
                 case IDD_TO:
                 {
@@ -1269,7 +1272,6 @@ BOOL GetNameDlgProc(HWND hwnd, UINT wMsg, WPARAM wParam, LPARAM lParam)
         {
             if (wMsg == wHelpMessage)
             {
-DoHelp:
                 WFHelp(hwnd);
                 return TRUE;
             }
@@ -1345,7 +1347,7 @@ DWORD GetNextPair(PCOPYROOT pcr, LPWSTR pFrom,
     DWORD dwFunc, PDWORD pdwError,
     BOOL bIsLFNDriveDest)
 {
-    LPTSTR pT;                     // Temporary pointer
+    LPWSTR pT;                     // Temporary pointer
     DWORD dwOp;                    // Return value (operation to perform
     PLFNDTA pDTA;                  // Pointer to file DTA data
 
@@ -1385,10 +1387,7 @@ DWORD GetNextPair(PCOPYROOT pcr, LPWSTR pFrom,
                 // Was returned on last call, begin search.
                 //
                 pDTA->fd.dwFileAttributes |= ATTR_RETURNED;
-#ifdef FASTMOVE
-                if (pcr->bFastMove)
-                    goto FastMoveSkipDir;
-#endif
+
                 pcr->cDepth++;
                 pDTA++;
 
@@ -1397,7 +1396,9 @@ BeginDirSearch:
                 // Search for all subfiles in directory.
                 //
                 AppendToPath (pcr->sz,szStarDotStar);
-                goto BeginSearch;
+
+                if (lstrlen (pcr->sz) - lstrlen (FindFileName(pcr->sz)) >= MAXPATHLEN)
+                    goto SearchStartFail;
             }
 
 SkipThisFile:
@@ -1405,7 +1406,7 @@ SkipThisFile:
             //
             // Search for the next matching file.
             //
-            if (!WFFindNext (pDTA))
+            if (!WFFindNext(pDTA))
             {
                 WFFindClose(pDTA);
 LeaveDirectory:
@@ -1418,214 +1419,196 @@ LeaveDirectory:
                 // Remove the child file spec.
                 //
                 RemoveLast(pcr->sz);
-
-#ifdef FASTMOVE
-FastMoveSkipDir:
-#endif
                 RemoveLast(pcr->szDest);
 
-#ifdef FASTMOVE
-                if (pcr->fRecurse && !pcr->bFastMove)
+                if (pcr->fRecurse)
                 {
-#else
-                    if (pcr->fRecurse)
-                    {
-#endif
-
-                        //
-                        // Tell the move/copy driver it can now delete
-                        // the source directory if necessary.
-                        //
-                        // (Don't do on a fast move since the directory was
-                        // removed on the move.)
-
-                        dwOp = OPER_RMDIR;
-                        goto ReturnPair;
-                    }
-
-#ifdef FASTMOVE
-                    pcr->bFastMove = FALSE;
-#endif
-
                     //
-                    // Not recursing, get more stuff.
+                    // Tell the move/copy driver it can now delete
+                    // the source directory if necessary.
                     //
-                    continue;
+                    // (Don't do on a fast move since the directory was
+                    // removed on the move.)
+
+                    dwOp = OPER_RMDIR;
+                    goto ReturnPair;
                 }
+
+                //
+                // Not recursing, get more stuff.
+                //
+                continue;
+            }
 
 ProcessSearchResult:
 
-#ifndef UNICODE
-                if (pDTA->fd.cAlternateFileName[0] && StrChr(pDTA->fd.cFileName, CHAR_DEFAULT))
-                    lstrcpy(pDTA->fd.cFileName, pDTA->fd.cAlternateFileName);
-#endif
+            //
+            // Got a file or dir in the DTA which matches the wild card
+            // originally passed in...
+            //
+            if (pDTA->fd.dwFileAttributes & ATTR_DIR)
+            {
                 //
-                // Got a file or dir in the DTA which matches the wild card
-                // originally passed in...
+                // Ignore directories if we're not recursing.
                 //
-                if (pDTA->fd.dwFileAttributes & ATTR_DIR)
+                if (!pcr->fRecurse)
+                    goto SkipThisFile;
+
+                //
+                // Skip the current and parent directories.
+                //
+                if (ISDOTDIR(pDTA->fd.cFileName))
+                    goto SkipThisFile;
+
+                // We need to create this directory, and then begin searching
+                // for subfiles.
+
+                dwOp = OPER_MKDIR;
+                RemoveLast (pcr->sz);
+                AppendToPath (pcr->sz,pDTA->fd.cFileName);
+                AppendToPath (pcr->szDest,pDTA->fd.cFileName);
+                goto ReturnPair;
+            }
+
+            if (pcr->fRecurse || !(pDTA->fd.dwFileAttributes & ATTR_DIR))
+            {
+                /* Remove the original spec. */
+                RemoveLast (pcr->sz);
+
+                /* Replace it. */
+                AppendToPath (pcr->sz,pDTA->fd.cFileName);
+
+                /* Convert to ANSI. */
+                pT = FindFileName (pcr->sz);
+
+                // If its a dir, tell the driver to create it
+                // otherwise, tell the driver to "operate" on the file.
+                dwOp = (pDTA->fd.dwFileAttributes & ATTR_DIR) ? OPER_RMDIR : OPER_DOFILE;
+                goto ReturnPair;
+            }
+            continue;
+        }
+        else
+        {
+            //
+            // Read the next source spec out of the raw source string.
+            //
+            pcr->fRecurse = FALSE;
+            pcr->pSource = GetNextFile (pcr->pSource,pcr->sz,COUNTOF(pcr->sz));
+
+            pcr->szDest[0] = CHAR_NULL;
+
+            if (!pcr->pSource)
+                return (0);
+
+            //
+            // Fully qualify the path
+            //
+            QualifyPath(pcr->sz);
+
+            // Ensure the source disk really exists before doing anything.
+            // Only call IsTheDiskReallyThere once for each drive letter.
+            // Set pcr->cIsDiskThereCheck[DRIVEID] after disk has been
+            // checked.  Modified by C. Stevens, August 1991
+
+            if (pcr->sz[1] == CHAR_COLON && !pcr->cIsDiskThereCheck[DRIVEID(pcr->sz)])
+            {
+                if (!IsTheDiskReallyThere(hdlgProgress, pcr->sz, dwFunc, FALSE))
+                    return 0;
+
+                pcr->cIsDiskThereCheck[DRIVEID (pcr->sz)] = 1;
+            }
+
+            //
+            // Classify the input string.
+            //
+            if (IsWild(pcr->sz) == TRUE)
+            {
+                //
+                // Wild card... operate on all matches but not recursively.
+                //
+                pcr->cDepth = 1;
+                pDTA = pcr->rgDTA;
+                pcr->pRoot = NULL;
+
+                //
+                // Quit if pcr->sz gets too big.
+                //
+                if (lstrlen (pcr->sz) - lstrlen (FindFileName(pcr->sz)) >= MAXPATHLEN)
+                    goto SearchStartFail;
+
+                //
+                // Search for the wildcard spec in pcr->sz.
+                //
+                if (!WFFindFirst(pDTA, pcr->sz, ATTR_ALL))
                 {
-                    //
-                    // Ignore directories if we're not recursing.
-                    //
-                    if (!pcr->fRecurse)
-                        goto SkipThisFile;
+SearchStartFail:
+                    if (pcr->fRecurse)
+                    {
+                        // We are inside a recursive directory delete, so
+                        // instead of erroring out, go back a level
+
+                        goto LeaveDirectory;
+                    }
+                    lstrcpy(pFrom, pcr->sz);
 
                     //
-                    // Skip the current and parent directories.
+                    // Back up as if we completed a search.
                     //
-                    if (ISDOTDIR(pDTA->fd.cFileName))
-                        goto SkipThisFile;
-
-                    // We need to create this directory, and then begin searching
-                    // for subfiles.
-
-                    dwOp = OPER_MKDIR;
                     RemoveLast (pcr->sz);
-                    AppendToPath (pcr->sz,pDTA->fd.cFileName);
-                    AppendToPath (pcr->szDest,pDTA->fd.cFileName);
+                    pcr->cDepth--;
+
+                    //
+                    // Find First returned an error.  Return FileNotFound.
+                    //
+                    dwOp = OPER_ERROR;
+                    *pdwError = ERROR_FILE_NOT_FOUND;
+
                     goto ReturnPair;
                 }
-
-                if (pcr->fRecurse || !(pDTA->fd.dwFileAttributes & ATTR_DIR))
-                {
-                    /* Remove the original spec. */
-                    RemoveLast (pcr->sz);
-
-                    /* Replace it. */
-                    AppendToPath (pcr->sz,pDTA->fd.cFileName);
-
-                    /* Convert to ANSI. */
-                    pT = FindFileName (pcr->sz);
-
-                    // If its a dir, tell the driver to create it
-                    // otherwise, tell the driver to "operate" on the file.
-                    dwOp = (pDTA->fd.dwFileAttributes & ATTR_DIR) ? OPER_RMDIR : OPER_DOFILE;
-                    goto ReturnPair;
-                }
-                continue;
+                goto ProcessSearchResult;
             }
             else
             {
-                //
-                // Read the next source spec out of the raw source string.
-                //
-                pcr->fRecurse = FALSE;
-                pcr->pSource = GetNextFile (pcr->pSource,pcr->sz,COUNTOF(pcr->sz));
+                // This could be a file or a directory.  Fill in the DTA
+                // structure for attrib check
 
-                pcr->szDest[0] = CHAR_NULL;
-
-                if (!pcr->pSource)
-                    return (0);
-
-                //
-                // Fully qualify the path
-                //
-                QualifyPath(pcr->sz);
-
-                // Ensure the source disk really exists before doing anything.
-                // Only call IsTheDiskReallyThere once for each drive letter.
-                // Set pcr->cIsDiskThereCheck[DRIVEID] after disk has been
-                // checked.  Modified by C. Stevens, August 1991
-
-                if (pcr->sz[1] == CHAR_COLON && !pcr->cIsDiskThereCheck[DRIVEID(pcr->sz)])
+                if (!IsRootDirectory(pcr->sz))
                 {
-                    if (!IsTheDiskReallyThere(hdlgProgress, pcr->sz, dwFunc, FALSE))
-                        return 0;
-                    pcr->cIsDiskThereCheck[DRIVEID (pcr->sz)] = 1;
-                }
-
-                //
-                // Classify the input string.
-                //
-                if (IsWild (pcr->sz))
-                {
-                    //
-                    // Wild card... operate on all matches but not recursively.
-                    //
-                    pcr->cDepth = 1;
-                    pDTA = pcr->rgDTA;
-                    pcr->pRoot = NULL;
-
-BeginSearch:
-                    //
-                    // Quit if pcr->sz gets too big.
-                    //
-                    if (lstrlen (pcr->sz) - lstrlen (FindFileName(pcr->sz)) >= MAXPATHLEN)
-                        goto SearchStartFail;
-
-                    //
-                    // Search for the wildcard spec in pcr->sz.
-                    //
-                    if (!WFFindFirst(pDTA, pcr->sz, ATTR_ALL))
+                    if (!WFFindFirst(pcr->rgDTA, pcr->sz, ATTR_ALL))
                     {
-SearchStartFail:
-                        if (pcr->fRecurse)
-                        {
-                            // We are inside a recursive directory delete, so
-                            // instead of erroring out, go back a level
-
-                            goto LeaveDirectory;
-                        }
-                        lstrcpy(pFrom, pcr->sz);
-
-                        //
-                        // Back up as if we completed a search.
-                        //
-                        RemoveLast (pcr->sz);
-                        pcr->cDepth--;
-
-                        //
-                        // Find First returned an error.  Return FileNotFound.
-                        //
                         dwOp = OPER_ERROR;
-                        *pdwError = ERROR_FILE_NOT_FOUND;
+                        *pdwError = GetLastError();
 
                         goto ReturnPair;
                     }
-                    goto ProcessSearchResult;
+                    WFFindClose(pcr->rgDTA);
+
+                    // Mega hack fix by adding else clause
                 }
                 else
-                {
-                    // This could be a file or a directory.  Fill in the DTA
-                    // structure for attrib check
+                    pcr->rgDTA->hFindFile = INVALID_HANDLE_VALUE;
 
-                    if (!IsRootDirectory(pcr->sz))
+                //
+                // Now determine if its a file or a directory
+                //
+                pDTA = pcr->rgDTA;
+                if (IsRootDirectory(pcr->sz) || (pDTA->fd.dwFileAttributes & ATTR_DIR))
+                {
+                    //
+                    // Process directory
+                    //
+                    if (dwFunc == FUNC_RENAME)
                     {
-                        if (!WFFindFirst(pcr->rgDTA, pcr->sz, ATTR_ALL))
+                        if (IsRootDirectory(pcr->sz) == TRUE)
                         {
                             dwOp = OPER_ERROR;
-                            *pdwError = GetLastError();
-
-                            goto ReturnPair;
+                            *pdwError = DE_ROOTDIR;
                         }
-                        WFFindClose(pcr->rgDTA);
-
-                        // Mega hack fix by adding else clause
+                        else
+                            dwOp = OPER_DOFILE;
+                        goto ReturnPair;
                     }
-                    else
-                        pcr->rgDTA->hFindFile = INVALID_HANDLE_VALUE;
-
-                    //
-                    // Now determine if its a file or a directory
-                    //
-                    pDTA = pcr->rgDTA;
-                    if (IsRootDirectory(pcr->sz) || (pDTA->fd.dwFileAttributes & ATTR_DIR))
-                    {
-                        //
-                        // Process directory
-                        //
-                        if (dwFunc == FUNC_RENAME)
-                        {
-                            if (IsRootDirectory (pcr->sz))
-                            {
-                                dwOp = OPER_ERROR;
-                                *pdwError = DE_ROOTDIR;
-                            }
-                            else
-                                dwOp = OPER_DOFILE;
-                            goto ReturnPair;
-                        }
 
                         //
                         // Directory: operation is recursive.
@@ -1639,85 +1622,63 @@ SearchStartFail:
 
                         dwOp = OPER_MKDIR;
                         goto ReturnPair;
-                    }
-                    else
-                    {
-                        //
-                        // Process file
-                        //
-                        pcr->pRoot = NULL;
-                        dwOp = OPER_DOFILE;
-                        goto ReturnPair;
-                    }
-                }
-            }
-        }
-
-ReturnPair:
-
-        // The source filespec has been derived into pcr->sz
-        // that is copied to pFrom.  pcr->sz and pToSpec are merged into pTo.
-
-        if (!*pFrom)
-            lstrcpy(pFrom,pcr->sz);
-        QualifyPath(pFrom);
-
-        if (dwFunc != FUNC_DELETE)
-        {
-            if (dwFunc == FUNC_RENAME && !*pToPath)
-            {
-                lstrcpy(pToPath, pFrom);
-                RemoveLast(pToPath);
-                AppendToPath(pToPath, pToSpec);
-            }
-            else
-            {
-                AppendToPath(pToPath,pcr->szDest);
-                if (dwOp == OPER_MKDIR)
-                    RemoveLast(pToPath);
-
-                AppendToPath(pToPath, pToSpec);
-            }
-
-            if ((dwOp == OPER_MKDIR || dwOp == OPER_DOFILE) && 
-                (!bIsLFNDriveDest) && IsLFN (FindFileName (pFrom)) &&
-                (IsWild(pToSpec) || IsLFN(pToSpec)))
-            {
-                //
-                // Don't check if ntfs, just if has altname!
-                //
-                if (pDTA->fd.cAlternateFileName[0])
-                {
-                    RemoveLast(pToPath);
-                    AppendToPath(pToPath,pDTA->fd.cAlternateFileName);
-                    QualifyPath(pToPath);
-
-                    if (dwOp == OPER_MKDIR)
-                    {
-                        RemoveLast(pcr->szDest);
-                        AppendToPath(pcr->szDest, pDTA->fd.cAlternateFileName);
-                    }
                 }
                 else
                 {
-#if 0
-                    // This has been turned off since
-                    // it's a strange feature for HPFS only
+                    //
+                    // Process file
+                    //
+                    pcr->pRoot = NULL;
+                    dwOp = OPER_DOFILE;
+                    goto ReturnPair;
+                }
+            }
+        }
+    }
 
-                    if (GetNameDialog(dwOp, pFrom, pToPath) != IDOK)
-                        return 0;   // User cancelled the operation, return failure
+ReturnPair:
 
-                    // Update the "to" path with the FAT name chosen by the user.
+    // The source filespec has been derived into pcr->sz
+    // that is copied to pFrom.  pcr->sz and pToSpec are merged into pTo.
 
-                    if (dwOp == OPER_MKDIR)
-                    {
-                        RemoveLast(pcr->szDest);
-                        AppendToPath(pcr->szDest, FindFileName(pToPath));
-                    }
-#else
-                    if (IsWild(pToPath))
-                        LFNMergePath(pToPath, FindFileName(pFrom));
-#endif
+    if (!*pFrom)
+        lstrcpy(pFrom,pcr->sz);
+    QualifyPath(pFrom);
+
+    if (dwFunc != FUNC_DELETE)
+    {
+        if (dwFunc == FUNC_RENAME && !*pToPath)
+        {
+            lstrcpy(pToPath, pFrom);
+            RemoveLast(pToPath);
+            AppendToPath(pToPath, pToSpec);
+        }
+        else
+        {
+            AppendToPath(pToPath,pcr->szDest);
+            if (dwOp == OPER_MKDIR)
+                RemoveLast(pToPath);
+
+            AppendToPath(pToPath, pToSpec);
+        }
+
+        if ((dwOp == OPER_MKDIR || dwOp == OPER_DOFILE) && 
+            (!bIsLFNDriveDest) && IsLFN (FindFileName (pFrom)) &&
+            (IsWild(pToSpec) || IsLFN(pToSpec)))
+        {
+            //
+            // Don't check if ntfs, just if has altname!
+            //
+            if (pDTA->fd.cAlternateFileName[0])
+            {
+                RemoveLast(pToPath);
+                AppendToPath(pToPath,pDTA->fd.cAlternateFileName);
+                QualifyPath(pToPath);
+
+                if (dwOp == OPER_MKDIR)
+                {
+                    RemoveLast(pcr->szDest);
+                    AppendToPath(pcr->szDest, pDTA->fd.cAlternateFileName);
                 }
             }
             else
@@ -1726,31 +1687,37 @@ ReturnPair:
                     LFNMergePath(pToPath, FindFileName(pFrom));
             }
         }
-
-        if (dwOp == OPER_MKDIR)
+        else
         {
-            //
-            // Make sure the new directory is not a subdir of the original...
-            // Assumes case insensitivity.
-            //
-            pT = pToPath;
-
-            while ((*pFrom) && (wcscmp(CharUpper(pFrom), CharUpper(pT))))
-            {
-                pFrom++;
-                pT++;
-            }
-            if (!(*pFrom) && (!(*pT) || *pT == CHAR_BACKSLASH))
-            {
-                // The two fully qualified strings are equal up to the end of the
-                //   source directory ==> the destination is a subdir.Must return
-                //   an error.
-
-                dwOp = OPER_ERROR;
-                *pdwError = DE_DESTSUBTREE;
-            }
+            if (IsWild(pToPath))
+                LFNMergePath(pToPath, FindFileName(pFrom));
         }
     }
+
+    if (dwOp == OPER_MKDIR)
+    {
+        //
+        // Make sure the new directory is not a subdir of the original...
+        // Assumes case insensitivity.
+        //
+        pT = pToPath;
+
+        while ((*pFrom) && (wcscmp(CharUpper(pFrom), CharUpper(pT))))
+        {
+            pFrom++;
+            pT++;
+        }
+        if (!(*pFrom) && (!(*pT) || *pT == CHAR_BACKSLASH))
+        {
+            // The two fully qualified strings are equal up to the end of the
+            //   source directory ==> the destination is a subdir.Must return
+            //   an error.
+
+            dwOp = OPER_ERROR;
+            *pdwError = DE_DESTSUBTREE;
+        }
+    }
+
     return dwOp;
 }
 
@@ -2550,35 +2517,7 @@ TRY_COPY_AGAIN:
                         }
                     }
 #endif
-#ifdef FASTMOVE
-                    if ((CHAR_COLON == pcr->sz[1]) &&
-                        (CHAR_COLON == szDest[1]) &&
-                        (DRIVEID(pcr->sz) == DRIVEID(szDest)))
-                    {
-
-                        //
-                        // Warning: This will not work on winball drives!
-                        // There is a problem here: if this is winball,
-                        // then we get an ERROR_ACCESS_DENIED when we try to do
-                        // the fastmove.  We could continue normally with the
-                        // slowmove.  However, in the case of moving NTFS directories,
-                        // we may get ERROR_ACCESS_DENIED because we don't have
-                        // write permission on the directory.  In this case, we
-                        // want to ignore the entire directory.
-                        //
-                        // For now, this works because DTAFast.err is neither
-                        // ERROR_PATH_NOT_FOUND ERROR_FILE_NOT_FOUND, do we're
-                        // ok by accident.
-                        //
-                        pcr->bFastMove = TRUE;
-                        goto DoMove;
-                    }
-#endif
                 }
-
-#ifdef FASTMOVE
-DoMkDir:
-#endif
 
                 ret = WF_CreateDirectory(hdlgProgress, szDest, szSource);
                 if (!ret)
@@ -2791,14 +2730,6 @@ SkipMKDir:
 
             case OPER_DOFILE | FUNC_MOVE:
             {
-#ifdef FASTMOVE
-DoMove:
-                if (CurIDS != IDS_MOVINGMSG)
-                {
-                    CurIDS = IDS_MOVINGMSG;
-                    Notify(hdlgProgress, IDS_MOVINGMSG, szNULL, szNULL);
-                }
-#endif
 DoMoveRename:
                 // Don't allow the user to rename from or to the root
                 // directory
@@ -2901,26 +2832,6 @@ DoMoveRename:
 
                     if (ret == DE_OPCANCELLED)
                         goto CancelWholeOperation;
-#ifdef FASTMOVE
-                    if (pcr->bFastMove)
-                    {
-                        //
-                        // In the case of access denied, don't try and recurse
-                        // since on NTFS, this will fail also.
-                        //
-                        if (ret)
-                        {
-                            //
-                            // We failed.
-                            //
-                            // Go back to MkDir.  We are no longer doing a fast move.
-                            //
-
-                            pcr->bFastMove = FALSE;
-                            goto DoMkDir;
-                        }
-                    }
-#endif
                     if (!ret)
                     {
                         // set attributes of dest to those of the source
@@ -3083,11 +2994,10 @@ ShowMessageBox:
                     pCopyInfo->bUserAbort = TRUE;
                     goto ExitLoop;
                 }
-CancelWholeOperation:
             }
         }
     }
-
+CancelWholeOperation:
 ExitLoop:
     // Copy any outstanding files in the copy queue
 

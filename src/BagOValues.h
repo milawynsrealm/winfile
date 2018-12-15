@@ -11,6 +11,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <iterator>
+#include <utility>
 
 #include "spinlock.h"
 
@@ -62,7 +64,7 @@ public:
 	{
 		wstring lowered;
 		lowered.resize(query.size());
-		transform(std::cbegin(query), std::cend(query), std::begin(lowered), ::tolower);
+		transform(lowered.cbegin(query), lowered.cend(query), lowered.begin(lowered), ::tolower);
 
 		vector<TValue> results;
 		TValue val = TValue();

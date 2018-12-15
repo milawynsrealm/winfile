@@ -683,7 +683,10 @@ INT_PTR CALLBACK ConfirmDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPar
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
                 case IDD_HELP:
-                    goto DoHelp;
+                {
+                    WFHelp(hDlg);
+                    return TRUE;
+                }
 
                 case IDCANCEL:
                 {
@@ -723,7 +726,6 @@ INT_PTR CALLBACK ConfirmDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lPar
         {
             if (wMsg == wHelpMessage)
             {
-DoHelp:
                 WFHelp(hDlg);
                 return TRUE;
             }
@@ -782,7 +784,10 @@ INT_PTR CALLBACK PrefDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
                 case IDD_HELP:
-                    goto DoHelp;
+                {
+                    WFHelp(hDlg);
+                    return TRUE;
+                }
 
                 case IDC_EDITOR:
                 {
@@ -829,7 +834,6 @@ INT_PTR CALLBACK PrefDlgProc(HWND hDlg, UINT wMsg, WPARAM wParam, LPARAM lParam)
         {
             if (wMsg == wHelpMessage)
             {
-DoHelp:
                 WFHelp(hDlg);
                 return TRUE;
             }
@@ -894,14 +898,14 @@ VOID ActivateCommonContextMenu(HWND hwnd, HWND hwndLB, LPARAM lParam)
         pt.x = rect.left;
         pt.y = rect.bottom;
         ClientToScreen(hwnd, &pt);
-        lParam = POINTTOPOINTS(pt);
+        lParam = MAKELPARAM(pt.x, pt.y);
     }
     else
     {
         POINTSTOPOINT(pt, lParam);
 
         ScreenToClient(hwndLB, &pt);
-        item = SendMessage(hwndLB, LB_ITEMFROMPOINT, 0, POINTTOPOINTS(pt));
+        item = SendMessage(hwndLB, LB_ITEMFROMPOINT, 0, MAKELPARAM(pt.x, pt.y));
 
         if (HIWORD(item) == 0)
         {

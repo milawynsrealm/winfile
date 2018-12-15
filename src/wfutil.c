@@ -1484,7 +1484,7 @@ PDOCBUCKET IsBucketFile(LPWSTR lpszPath, PPDOCBUCKET ppBucket)
 // returns true if additional characters; false if first one
 // repeating the first character leaves only one character
 // ch == '\0' resets the tick and buffer
-BOOL TypeAheadString(LPWSTR ch, LPWSTR szT)
+BOOL TypeAheadString(WCHAR ch, LPWSTR szT)
 {
 	static DWORD tick64 = 0;
 	static WCHAR rgchTA[MAXPATHLEN] = { '\0' };
@@ -1502,7 +1502,7 @@ BOOL TypeAheadString(LPWSTR ch, LPWSTR szT)
 	ich = wcslen(rgchTA);
 
 	// if only one char and it repeats or more than .5s since last char, start over
-	if ((ich == 1 && rgchTA[0] == CharUpperW(ch)) || tickT - tick64 > 500)
+	if ((ich == 1 && wcscmp((wchar_t*)rgchTA[0], CharUpperW(ch))) || (tickT - tick64 > 500))
 		ich = 0;
 
 	rgchTA[ich] = CharUpperW(ch);

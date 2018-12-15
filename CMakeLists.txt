@@ -1,2 +1,2 @@
-#TODO: Add support for build environments other than ReactOS.
+#TODO: Add support for build environments other than just ReactOS.
 include(reactos.cmake)
