@@ -9,7 +9,7 @@
 
 ********************************************************************/
 
-#include "stdafx.h"
+#include "precomp.h"
 
 #include <windows.h>
 #include <wincrypt.h>
@@ -36,7 +36,7 @@ BOOL GetTimeStampSignerInfo(PCMSG_SIGNER_INFO pSignerInfo,
 
 BOOL VerifyEmbeddedSignature(LPCWSTR pwszSourceFile);
 
-int _tmain(int argc, TCHAR *argv[])
+int wmain(int argc, WCHAR *argv[])
 {
     WCHAR szFileName[MAX_PATH];
     HCERTSTORE hStore = NULL;
@@ -60,15 +60,8 @@ int _tmain(int argc, TCHAR *argv[])
             return 0;
         }
 
-#ifdef UNICODE
         lstrcpynW(szFileName, argv[1], MAX_PATH);
-#else
-        if (mbstowcs(szFileName, argv[1], MAX_PATH) == -1)
-        {
-            printf("Unable to convert to unicode.\n");
-            __leave;
-        }
-#endif
+
 
         // Get message handle and store handle from the signed file.
         fResult = CryptQueryObject(CERT_QUERY_OBJECT_FILE,

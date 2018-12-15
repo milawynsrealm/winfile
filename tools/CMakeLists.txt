@@ -1,0 +1,2 @@
+add_subdirectory(FileSignatureInfo)
+add_subdirectory(VerifyResources)

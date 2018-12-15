@@ -12,7 +12,7 @@
 #define _UNICODE 1
 #define UNICODE 1
 
-#include "stdafx.h"
+#include "precomp.h"
 
 #include <tchar.h>
 #include <stdio.h>

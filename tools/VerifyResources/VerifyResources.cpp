@@ -10,8 +10,8 @@
 
 **************************************************************************/
 
-#include "stdafx.h"
-#include <Windows.h>
+#include "precomp.h"
+#include <windows.h>
 
 #include "Resources.h"
 
