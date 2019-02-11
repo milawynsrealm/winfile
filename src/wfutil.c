@@ -13,6 +13,7 @@
 #include "lfn.h"
 #include <commctrl.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 LPTSTR CurDirCache[26];
 
@@ -805,7 +806,7 @@ DWORD IsNetDrive(INT drive)
 }
 #endif
 
-BOOL IsNTFSDrive(register DRIVE drive)
+BOOL IsFATDrive(register DRIVE drive)
 {
     U_VolInfo(drive);
 
@@ -815,10 +816,9 @@ BOOL IsNTFSDrive(register DRIVE drive)
     if (GETRETVAL(VolInfo, drive))
         return FALSE;
 
-    //
-    // See if it's an NTFS drive.
-    //
-    return (!lstrcmpi(aDriveInfo[drive].szFileSysName, SZ_NTFSNAME)) ? TRUE : FALSE;
+    /* Just check to see if the drive is FAT or not. Previously, it would only check for NTFS,
+       but support for other file systems have expanded. */
+    return (!lstrcmpi(aDriveInfo[drive].szFileSysName, SZ_FATNAME)) ? FALSE : TRUE;
 }
 
 //
@@ -1484,7 +1484,7 @@ PDOCBUCKET IsBucketFile(LPWSTR lpszPath, PPDOCBUCKET ppBucket)
 // returns true if additional characters; false if first one
 // repeating the first character leaves only one character
 // ch == '\0' resets the tick and buffer
-BOOL TypeAheadString(WCHAR ch, LPWSTR szT)
+BOOL TypeAheadString(LPWSTR ch, LPWSTR szT)
 {
 	static DWORD tick64 = 0;
 	static WCHAR rgchTA[MAXPATHLEN] = { '\0' };
@@ -1502,8 +1502,10 @@ BOOL TypeAheadString(WCHAR ch, LPWSTR szT)
 	ich = wcslen(rgchTA);
 
 	// if only one char and it repeats or more than .5s since last char, start over
-	if ((ich == 1 && wcscmp((wchar_t*)rgchTA[0], CharUpperW(ch))) || (tickT - tick64 > 500))
-		ich = 0;
+	if (((ich == 1) &&
+        ((wcscmp((wchar_t*)rgchTA[0], CharUpperW(ch))) ||
+        (tickT - tick64 > 500))))
+            ich = 0;
 
 	rgchTA[ich] = CharUpperW(ch);
 	rgchTA[ich+1] = '\0';

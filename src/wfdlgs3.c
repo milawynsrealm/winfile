@@ -201,7 +201,7 @@ INT_PTR CALLBACK DiskLabelDlgProc(register HWND hDlg, UINT wMsg, WPARAM wParam, 
             // LATER: figure a more generic way of doing this.
             //
 
-            i = IsNTFSDrive(drive) ? LABEL_NTFS_MAX : LABEL_FAT_MAX;
+            i = IsFATDrive(drive) ? LABEL_FAT_MAX : LABEL_NTFS_MAX;
 
             SendDlgItemMessage(hDlg, IDD_NAME, EM_LIMITTEXT, i, 0L);
             break;

@@ -2122,7 +2122,7 @@ TreeControlWndProc(
                 return -2L;
 
             // if more that one character to match, start at current position; else next position
-            if (TypeAheadString(ch, rgchMatch))
+            if (TypeAheadString((LPWSTR)ch, rgchMatch))
                 j = 0;
             else
                 j = 1;

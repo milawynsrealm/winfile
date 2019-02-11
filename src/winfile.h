@@ -415,7 +415,7 @@ BOOL  FindExtensionInList(LPTSTR pszExt, LPTSTR pszList);
 INT   MyMessageBox(HWND hWnd, DWORD idTitle, DWORD idMessage, DWORD dwStyle);
 DWORD ExecProgram(LPTSTR,LPTSTR,LPTSTR,BOOL,BOOL);
 PDOCBUCKET IsBucketFile(LPTSTR lpszPath, PPDOCBUCKET ppDocBucket);
-BOOL  IsNTFSDrive(DRIVE);
+BOOL  IsFATDrive(DRIVE);
 BOOL  IsCasePreservedDrive(DRIVE);
 
 BOOL  IsRemovableDrive(DRIVE);
@@ -425,7 +425,7 @@ INT   GetMDIWindowText(HWND hwnd, LPTSTR szTitle, INT size);
 BOOL  ResizeSplit(HWND hWnd, INT dxSplit);
 VOID  CheckEsc(LPTSTR);
 VOID  GetMDIWindowVolume(HWND hWnd, LPTSTR szTitle, INT size);
-BOOL TypeAheadString(WCHAR ch, LPWSTR szT);
+BOOL TypeAheadString(LPWSTR ch, LPWSTR szT);
 
 VOID SaveHistoryDir(HWND hwnd, LPWSTR szDir);
 BOOL GetPrevHistoryDir(BOOL forward, HWND *phwnd, LPWSTR szDir);
@@ -435,14 +435,14 @@ BOOL GetPrevHistoryDir(BOOL forward, HWND *phwnd, LPWSTR szDir);
 VOID   UpdateStatus(HWND hWnd);
 LPWSTR DirGetSelection(HWND hwndDir, HWND hwndView, HWND hwndLB, INT iSelType, BOOL *pfDir, PINT piLastSel);
 VOID   FillDirList(HWND hwndDir, LPXDTALINK lpStart);
-VOID   CreateLBLine(register DWORD dwLineFormat, LPXDTA lpxdta, LPTSTR szBuffer);
+VOID   CreateLBLine(register DWORD dwLineFormat, LPXDTA lpxdta, LPWSTR szBuffer);
 INT    GetMaxExtent(HWND hwndLB, LPXDTALINK lpXDTA, BOOL bNTFS);
 VOID   UpdateSelection(HWND hwndLB);
 
 INT  PutDate(LPFILETIME lpftDate, LPTSTR szStr);
 INT  PutTime(LPFILETIME lpftTime, LPTSTR szStr);
 INT  PutSize(PLARGE_INTEGER pqSize, LPTSTR szOutStr);
-INT  PutAttributes(register DWORD dwAttribute, register LPTSTR szStr);
+INT  PutAttributes(register DWORD dwAttribute, register LPWSTR szStr);
 HWND GetMDIChildFromDescendant(HWND hwnd);
 VOID SetLBFont(HWND hwnd, HWND hwndLB, HANDLE hNewFont, DWORD dwViewFlags, LPXDTALINK lpStart);
 

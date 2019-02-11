@@ -41,7 +41,8 @@ list(APPEND SOURCE
     src/wfutil.c
     src/winfile.c
     src/wnetcaps.c
-    src/wfgoto.cpp)
+    #src/wfgoto.cpp
+    )
 
 file(GLOB winfile_rc_deps src/res/*.*)
 add_rc_deps(src/res.rc ${winfile_rc_deps})

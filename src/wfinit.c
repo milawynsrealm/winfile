@@ -970,12 +970,16 @@ BOOL InitFileManager(HANDLE hInstance, LPWSTR lpCmdLine, INT nCmdShow)
     GetPrivateProfileString(szSettings, szUILanguage, szNULL, szTemp, COUNTOF(szTemp), szTheINIFile);
     if (szTemp[0])
     {
+#if 0
         LCID lcidUI = LocaleNameToLCID(szTemp, 0);
+#else
+        LCID lcidUI = LANG_SYSTEM_DEFAULT;
+#endif
         if (lcidUI != 0)
         {
             SetThreadUILanguage((LANGID)lcidUI);
 
-            // update to current local used for dispaly
+            // update to current local used for display
             SetThreadLocale(lcidUI);
         }
     }
