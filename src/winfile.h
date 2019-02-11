@@ -47,9 +47,8 @@
 
 #define STKCHK()
 
-#ifdef UNICODE
-#ifdef atoi
-#undef atoi
+#ifndef UNICODE
+#error This project needs to be compiled in UNICODE.
 #endif
 
 // old winuserp.h
@@ -81,10 +80,6 @@ typedef unsigned char TUCHAR, *PTUCHAR;
 #define FS_FILE_COMPRESSION 0x0010
 #endif  //  FS_FILE_COMPRESSION
 
-
-#define atoi atoiW
-INT atoiW(LPWSTR sz);
-#endif //UNICODE
 
 #define SIZENOMDICRAP       944
 #define MAX_TAB_COLUMNS     10

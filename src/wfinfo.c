@@ -658,7 +658,7 @@ HICON DocGetIcon(PDOCBUCKET pDocBucket)
 
         if (pchT != NULL)
         {
-            INT index = atoi(pchT+1);
+            INT index = _wtoi(pchT+1);
             HICON hIcon;
 
             *pchT = '\0';
@@ -1269,7 +1269,7 @@ EnumRetry:
     {
         drive = rgiDriveReal[iUpdatePhantom][i];
 
-        if (IsRemoteDrive(drive))
+        if (IsRemoteDrive(drive) == TRUE)
         {
             U_NetCon(drive);
             aDriveInfo[drive].bUpdating = FALSE;
@@ -1478,7 +1478,7 @@ VOID UpdateDriveListComplete(VOID)
         // Now only do this for remote drives!
         //
 
-        if (IsRemoteDrive(drive))
+        if (IsRemoteDrive(drive) == TRUE)
         {
             if (!WFGetConnection(drive, &lpszVol, FALSE, ALTNAME_REG))
             {
@@ -1486,7 +1486,7 @@ VOID UpdateDriveListComplete(VOID)
 
                 if (lpszOldVol && lpszVol)
                 {
-                    if (lstrcmpi(lpszVol, lpszOldVol))
+                    if (lstrcmpiW(lpszVol, lpszOldVol) == 0)
                     {
                         //
                         // Share has changed, refresh.
@@ -1839,7 +1839,7 @@ VOID ResetDriveInfo()
             pDriveInfo->bRemembered = FALSE;
             pDriveInfo->iOffset = GetDriveOffset(drive);
 
-            if (IsRemoteDrive(drive))
+            if (IsRemoteDrive(drive) == TRUE)
             {
                 //
                 // Update dwLines for WM_MEASUREITEM

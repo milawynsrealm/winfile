@@ -422,9 +422,6 @@ VOID WFHelp(HWND hwnd)
         MyMessageBox(hwnd, IDS_WINFILE, IDS_WINHELPERR, MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
 }
 
-// atoi with decimal comma separators
-//
-
 //#ifdef INLIBRARY
 LPWSTR AddCommasInternal(LPWSTR szBuf, DWORD dw)
 {
@@ -543,7 +540,7 @@ INT GetMDIWindowText(HWND hwnd, LPWSTR szTitle, INT size)
     //
     if (lpLast)
     {
-        iWindowNumber = atoi(lpLast + 1);
+        iWindowNumber = _wtoi(lpLast + 1);
 
         //
         // Delimit title (we just want part of the title)
@@ -687,7 +684,7 @@ VOID SetMDIWindowText(HWND hwnd, LPWSTR szTitle)
             LocalFree(lpszVolName);
 
         if (GetVolShare(drive, &lpszVolShare, ALTNAME_REG) ||
-            !IsRemoteDrive(drive))
+            IsRemoteDrive(drive) == FALSE)
         {
             //
             // If error or not a remote drive, then do not store this.
@@ -740,27 +737,6 @@ VOID SetMDIWindowText(HWND hwnd, LPWSTR szTitle)
     SaveHistoryDir(hwnd, szTitle);
 }
 
-#define ISDIGIT(c)  ((c) >= TEXT('0') && (c) <= TEXT('9'))
-INT atoiW(LPWSTR sz)
-{
-    INT n = 0;
-    BOOL bNeg = FALSE;
-
-    if (*sz == CHAR_DASH)
-    {
-        bNeg = TRUE;
-        sz++;
-    }
-
-    while (ISDIGIT(*sz))
-    {
-        n *= 10;
-        n += *sz - TEXT('0');
-        sz++;
-    }
-    return bNeg ? -n : n;
-}
-
 //
 // IsCDROM()  - determine if a drive is a CDROM drive
 //
@@ -770,9 +746,7 @@ INT atoiW(LPWSTR sz)
 //
 BOOL IsCDRomDrive(DRIVE drive)
 {
-    if (aDriveInfo[drive].uType == DRIVE_CDROM)
-        return(TRUE);
-    return(FALSE);
+    return ((aDriveInfo[drive].uType == DRIVE_CDROM) ? TRUE : FALSE);
 }
 
 #if 0
@@ -787,7 +761,7 @@ DWORD IsNetDrive(INT drive)
     if (IsCDRomDrive(drive))   // this is bogus...  move this out
         return 0;
 
-    if (IsRemoteDrive(drive))
+    if (IsRemoteDrive(drive) == TRUE)
     {
         err = WFGetConnection(drive, NULL, TRUE, ALTNAME_REG);
 
@@ -876,7 +850,7 @@ BOOL IsValidDisk(DRIVE drive)
 
 DWORD GetVolShare(DRIVE drive, LPTSTR* ppszVolShare, DWORD dwType)
 {
-    if (IsRemoteDrive(drive))
+    if (IsRemoteDrive(drive) == TRUE)
         return WFGetConnection(drive,ppszVolShare,FALSE, dwType);
     else
         return GetVolumeLabel(drive, ppszVolShare, TRUE);

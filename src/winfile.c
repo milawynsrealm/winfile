@@ -360,7 +360,7 @@ BOOL InitPopupMenus(UINT uMenus, HMENU hMenu, HWND hwndActive)
                     {
                         drive = rgiDrive[i];
 
-                        if ( !IsCDRomDrive(drive) && IsRemoteDrive(drive) )
+                        if ( !IsCDRomDrive(drive) && IsRemoteDrive(drive) == TRUE )
                         {
                         uMenuFlags = MF_BYCOMMAND | MF_ENABLED;
                         break;

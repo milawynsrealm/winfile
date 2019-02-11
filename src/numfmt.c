@@ -19,9 +19,6 @@ static DWORD pdwOrders[] =
 static WCHAR szFormat[] = L"%s%02d";
 extern WCHAR szInternational[];
 
-//
-// atoi with decimal comma separators
-//
 LPWSTR ShortSizeFormatInternal(LPWSTR szBuf, LARGE_INTEGER qw)
 {
     INT i;

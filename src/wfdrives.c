@@ -71,7 +71,7 @@ VOID NewTree(DRIVE drive, HWND hwndSrc)
         //
         // Update net con in case remote drive was swapped from console
         //
-        if (IsRemoteDrive(drive))
+        if (IsRemoteDrive(drive) == TRUE)
             R_NetCon(drive);
 
         //

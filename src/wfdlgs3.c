@@ -802,7 +802,7 @@ INT_PTR CALLBACK FormatSelectDlgProc(register HWND hDlg, UINT wMsg, WPARAM wPara
                 for (driveIndex = 0; driveIndex < cDrives; driveIndex++)
                 {
                     drive = rgiDrive[driveIndex];
-                    if (!IsRemoteDrive(drive) && !IsCDRomDrive(drive))
+                    if (IsRemoteDrive(drive) == FALSE && !IsCDRomDrive(drive))
                     {
                         // Set the drive letter as the string and the drive index as the data.
                         DRIVESET(szDrive, drive);
@@ -1553,7 +1553,7 @@ VOID UpdateConnections(BOOL bUpdateDriveList)
             // Now only do this for remote drives!
             //
 
-            if (IsRemoteDrive(drive))
+            if (IsRemoteDrive(drive) == TRUE)
             {
                 R_NetCon(drive);
 

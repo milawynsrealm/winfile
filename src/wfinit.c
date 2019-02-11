@@ -46,13 +46,13 @@ VOID    GetSettings(VOID);
 #define MENU_STRING_SIZ 80
 #define PROFILE_STRING_SIZ 300
 
-INT GetHeightFromPointsString(LPTSTR szPoints)
+INT GetHeightFromPointsString(LPWSTR szPoints)
 {
     HDC hdc;
     INT height;
 
     hdc = GetDC(NULL);
-    height = MulDiv(-atoi(szPoints), GetDeviceCaps(hdc, LOGPIXELSY), 72);
+    height = MulDiv(-_wtoi(szPoints), GetDeviceCaps(hdc, LOGPIXELSY), 72);
     ReleaseDC(NULL, hdc);
 
     return height;
@@ -288,7 +288,7 @@ VOID GetInternational()
 
 INT GetDriveOffset(register DRIVE drive)
 {
-    if (IsRemoteDrive(drive))
+    if (IsRemoteDrive(drive) == TRUE)
     {
         if (aDriveInfo[drive].bRemembered)
             return dxDriveBitmap * 5;
@@ -697,7 +697,7 @@ VOID GetSavedWindow(LPWSTR szBuf, PWINDOW pwin)
 
     while (*szBuf && count < 11)
     {
-        *pint++ = atoi(szBuf);  // advance to next field
+        *pint++ = _wtoi(szBuf);  // advance to next field
 
         while (*szBuf && *szBuf != CHAR_COMMA)
             szBuf++;

@@ -106,7 +106,7 @@ BOOL WFFindNext(LPLFNDTA lpFind)
     PVOID oldValue;
 	Wow64DisableWow64FsRedirection(&oldValue);
 	
-    while (FindNextFile(lpFind->hFindFile, &lpFind->fd)) {
+    while (FindNextFileW(lpFind->hFindFile, &lpFind->fd) != 0) {
 
         lpFind->fd.dwFileAttributes &= ATTR_USED;
 
@@ -259,8 +259,8 @@ BOOL IsLFNDrive(LPTSTR szDrive)
             }
         }
 
-        if (GetVolumeInformation(szRootPath, NULL, 0, &dwVolumeSerialNumber, &dwMaximumComponentLength,
-                                &dwFileSystemFlags, NULL, 0))
+        if (GetVolumeInformationW(szRootPath, NULL, 0, &dwVolumeSerialNumber, &dwMaximumComponentLength,
+                                &dwFileSystemFlags, NULL, 0) == TRUE)
         {
             if (dwMaximumComponentLength == MAXDOSFILENAMELEN - 1)
                 return FALSE;

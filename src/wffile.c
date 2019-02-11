@@ -1177,7 +1177,7 @@ CompressFileError:
                 }
             }
 
-        } while (FindNextFile(FindHandle, &FindData));
+        } while (FindNextFileW(FindHandle, &FindData) != 0);
 
         FindClose(FindHandle);
 
@@ -1227,7 +1227,7 @@ CompressFileError:
                     }
                 }
 
-            } while (FindNextFile(FindHandle, &FindData));
+            } while (FindNextFileW(FindHandle, &FindData) != 0);
 
             FindClose(FindHandle);
         }
@@ -1462,7 +1462,7 @@ UncompressFileError:
                 }
             }
 
-        } while (FindNextFile(FindHandle, &FindData));
+        } while (FindNextFileW(FindHandle, &FindData) != 0);
 
         FindClose(FindHandle);
 
@@ -1512,7 +1512,7 @@ UncompressFileError:
                     }
                 }
 
-            } while (FindNextFile(FindHandle, &FindData));
+            } while (FindNextFileW(FindHandle, &FindData) != 0);
 
             FindClose(FindHandle);
         }

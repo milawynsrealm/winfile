@@ -648,7 +648,7 @@ LPXDTALINK CreateDTABlockWorker(HWND hwnd, HWND hwndDir)
 
         if (!IsTheDiskReallyThere(hwndDir, szPath, FUNC_EXPAND, FALSE))
         {
-            if (IsRemoteDrive(drive))
+            if (IsRemoteDrive(drive) == TRUE)
                 iError = IDS_DRIVENOTAVAILABLE;
             goto CDBDiskGone;
         }

@@ -192,7 +192,7 @@ Static VOID EnableDisconnectButton(void)
     INT i;
 
     for (i=0; i<cDrives; i++)
-        if (!IsCDRomDrive(rgiDrive[i]) && IsRemoteDrive(rgiDrive[i]))
+        if (!IsCDRomDrive(rgiDrive[i]) && IsRemoteDrive(rgiDrive[i]) == TRUE)
             break;
 
     SendMessage(hwndToolbar, TB_ENABLEBUTTON, IDM_DISCONNECT, i<cDrives);
